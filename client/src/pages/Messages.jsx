@@ -1,1397 +1,861 @@
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { io } from "socket.io-client";
+import "./Messages.css";
 
 const API_URL = "http://localhost:5000/api";
+const SOCKET_URL = "http://localhost:5000";
 
-function Messages() {
-  const [searchParams] = useSearchParams();
+function getId(value) {
+  if (!value) return "";
 
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (value._id) {
+    return value._id.toString();
+  }
+
+  if (value.id) {
+    return value.id.toString();
+  }
+
+  return value.toString();
+}
+
+function getInitials(name) {
+  if (!name) return "?";
+
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("");
+}
+
+function formatTime(dateValue) {
+  if (!dateValue) return "";
+
+  const date = new Date(dateValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+async function parseResponse(response) {
+  const text = await response.text();
+
+  let data = {};
+
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    data = {
+      message: text || "Unexpected server response"
+    };
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data.message || `Request failed with status ${response.status}`
+    );
+  }
+
+  return data;
+}
+
+export default function Messages() {
   const token = localStorage.getItem("token");
 
-  const storedUser =
-    JSON.parse(
-      localStorage.getItem("user") || "null"
+  const currentUser = useMemo(() => {
+    try {
+      const storedUser = localStorage.getItem("user");
+      return storedUser ? JSON.parse(storedUser) : null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const [users, setUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [messages, setMessages] = useState([]);
+
+  const [messageText, setMessageText] = useState("");
+  const [broadcastText, setBroadcastText] = useState("");
+
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+
+  const [sending, setSending] = useState(false);
+  const [broadcasting, setBroadcasting] = useState(false);
+
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editingText, setEditingText] = useState("");
+
+  const [onlineUsers, setOnlineUsers] = useState([]);
+
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const socketRef = useRef(null);
+  const messagesEndRef = useRef(null);
+  const selectedUserRef = useRef(null);
+
+  useEffect(() => {
+    selectedUserRef.current = selectedUser;
+  }, [selectedUser]);
+
+  const authHeaders = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json"
+  };
+
+  const isAdmin = currentUser?.role === "admin";
+
+  const currentUserId = getId(currentUser);
+
+  const isUserOnline = (userId) => {
+    return onlineUsers.some(
+      (onlineId) => getId(onlineId) === getId(userId)
     );
-
-  const currentUserId =
-    storedUser?.id ||
-    storedUser?._id;
-
-  // ==========================================
-  // USERS
-  // ==========================================
-
-  const [users, setUsers] =
-    useState([]);
-
-  const [selectedUser, setSelectedUser] =
-    useState(null);
-
-  // ==========================================
-  // CONVERSATION
-  // ==========================================
-
-  const [messages, setMessages] =
-    useState([]);
-
-  const [messageText, setMessageText] =
-    useState("");
-
-  const [loadingUsers, setLoadingUsers] =
-    useState(true);
-
-  const [loadingMessages, setLoadingMessages] =
-    useState(false);
-
-  const [sending, setSending] =
-    useState(false);
-
-  // ==========================================
-  // EDIT
-  // ==========================================
-
-  const [editingMessageId, setEditingMessageId] =
-    useState(null);
-
-  const [editingText, setEditingText] =
-    useState("");
-
-  // ==========================================
-  // COMMUNITY BROADCAST
-  // ==========================================
-
-  const [broadcastMessage, setBroadcastMessage] =
-    useState("");
-
-  const [broadcastSending, setBroadcastSending] =
-    useState(false);
-
-  // ==========================================
-  // LOAD USERS
-  // ==========================================
+  };
 
   const loadUsers = async () => {
     try {
       setLoadingUsers(true);
+      setError("");
+
+      const response = await fetch(`${API_URL}/users`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const data = await parseResponse(response);
+
+      const userList = Array.isArray(data.users) ? data.users : [];
+
+      setUsers(userList);
+
+      if (userList.length > 0 && !selectedUserRef.current) {
+        const firstUser =
+          userList.find(
+            (user) => getId(user) !== currentUserId
+          ) || userList[0];
+
+        setSelectedUser(firstUser);
+      }
+    } catch (err) {
+      console.error("Load users error:", err);
+      setError(err.message || "Unable to load users.");
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const loadConversation = async (userId) => {
+    if (!userId) {
+      setMessages([]);
+      return;
+    }
+
+    try {
+      setLoadingMessages(true);
+      setError("");
 
       const response = await fetch(
-        `${API_URL}/users`,
+        `${API_URL}/messages/${userId}`,
         {
           headers: {
-            Authorization:
-              `Bearer ${token}`
+            Authorization: `Bearer ${token}`
           }
         }
       );
 
-      const data =
-        await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message ||
-          "Unable to load users"
-        );
-      }
-
-      const loadedUsers =
-        data.users || [];
-
-      setUsers(loadedUsers);
-
-      // If URL contains ?user=ID
-      const urlUserId =
-        searchParams.get("user");
-
-      if (urlUserId) {
-
-        const urlUser =
-          loadedUsers.find(
-            (user) =>
-              user._id === urlUserId
-          );
-
-        if (urlUser) {
-          setSelectedUser(urlUser);
-          return;
-        }
-      }
-
-      // Otherwise select first user
-      // including yourself
-      if (
-        loadedUsers.length > 0 &&
-        !selectedUser
-      ) {
-        setSelectedUser(
-          loadedUsers[0]
-        );
-      }
-
-    } catch (error) {
-
-      console.error(
-        "Load users error:",
-        error
-      );
-
-    } finally {
-
-      setLoadingUsers(false);
-
-    }
-  };
-
-  // ==========================================
-  // LOAD CONVERSATION
-  // ==========================================
-
-  const loadConversation = async (
-    userId
-  ) => {
-
-    if (!userId) return;
-
-    try {
-
-      setLoadingMessages(true);
-
-      const response =
-        await fetch(
-          `${API_URL}/messages/${userId}`,
-          {
-            headers: {
-              Authorization:
-                `Bearer ${token}`
-            }
-          }
-        );
-
-      const data =
-        await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message ||
-          "Unable to load messages"
-        );
-      }
+      const data = await parseResponse(response);
 
       setMessages(
-        data.messages || []
+        Array.isArray(data.messages) ? data.messages : []
       );
-
-    } catch (error) {
-
-      console.error(
-        "Load conversation error:",
-        error
-      );
-
+    } catch (err) {
+      console.error("Load conversation error:", err);
+      setError(err.message || "Unable to load conversation.");
       setMessages([]);
-
     } finally {
-
       setLoadingMessages(false);
-
     }
   };
 
-  // ==========================================
-  // INITIAL LOAD
-  // ==========================================
-
   useEffect(() => {
-    loadUsers();
-  }, []);
-
-  // ==========================================
-  // LOAD WHEN USER CHANGES
-  // ==========================================
-
-  useEffect(() => {
-
-    if (selectedUser?._id) {
-      loadConversation(
-        selectedUser._id
-      );
-    }
-
-  }, [selectedUser]);
-
-  // ==========================================
-  // SEND PRIVATE MESSAGE
-  // ==========================================
-
-  const sendMessage = async () => {
-
-    if (!messageText.trim()) {
+    if (!token) {
+      setError("Please login again.");
       return;
     }
 
-    if (!selectedUser) {
-      alert(
-        "Please select a user."
+    loadUsers();
+
+    const socket = io(SOCKET_URL, {
+      auth: {
+        token
+      }
+    });
+
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      console.log("Socket connected");
+      socket.emit("get-online-users");
+    });
+
+    socket.on("online-users", (userIds) => {
+      setOnlineUsers(Array.isArray(userIds) ? userIds : []);
+    });
+
+    socket.on("user-online", (userId) => {
+      setOnlineUsers((previous) => {
+        if (
+          previous.some(
+            (id) => getId(id) === getId(userId)
+          )
+        ) {
+          return previous;
+        }
+
+        return [...previous, userId];
+      });
+    });
+
+    socket.on("user-offline", (userId) => {
+      setOnlineUsers((previous) =>
+        previous.filter(
+          (id) => getId(id) !== getId(userId)
+        )
       );
+    });
+
+    socket.on("new-message", (newMessage) => {
+      const selected = selectedUserRef.current;
+
+      if (!selected || !newMessage) {
+        return;
+      }
+
+      const senderId = getId(newMessage.sender);
+      const receiverId = getId(newMessage.receiver);
+      const selectedId = getId(selected);
+
+      const belongsToConversation =
+        (senderId === currentUserId &&
+          receiverId === selectedId) ||
+        (senderId === selectedId &&
+          receiverId === currentUserId);
+
+      if (belongsToConversation) {
+        setMessages((previous) => {
+          const alreadyExists = previous.some(
+            (message) =>
+              getId(message) === getId(newMessage)
+          );
+
+          if (alreadyExists) {
+            return previous;
+          }
+
+          return [...previous, newMessage];
+        });
+      }
+    });
+
+    socket.on("message-updated", (updatedMessage) => {
+      if (!updatedMessage) return;
+
+      setMessages((previous) =>
+        previous.map((message) =>
+          getId(message) === getId(updatedMessage)
+            ? updatedMessage
+            : message
+        )
+      );
+    });
+
+    socket.on("message-deleted", (deletedId) => {
+      setMessages((previous) =>
+        previous.filter(
+          (message) =>
+            getId(message) !== getId(deletedId)
+        )
+      );
+    });
+
+    socket.on("community-message", () => {
+      const selected = selectedUserRef.current;
+
+      if (selected) {
+        loadConversation(getId(selected));
+      }
+    });
+
+    socket.on("connect_error", (socketError) => {
+      console.error("Socket error:", socketError.message);
+    });
+
+    return () => {
+      socket.removeAllListeners();
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [token, currentUserId]);
+
+  useEffect(() => {
+    if (selectedUser) {
+      loadConversation(getId(selectedUser));
+    }
+  }, [selectedUser]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth"
+    });
+  }, [messages]);
+
+  const selectUser = (user) => {
+    setSelectedUser(user);
+    setMessages([]);
+    setError("");
+    setSuccess("");
+    setEditingMessageId(null);
+    setEditingText("");
+  };
+
+  const handleSendMessage = async (event) => {
+    event.preventDefault();
+
+    const text = messageText.trim();
+
+    if (!text || !selectedUser) {
       return;
     }
 
     try {
-
       setSending(true);
+      setError("");
+      setSuccess("");
 
-      const response =
-        await fetch(
-          `${API_URL}/messages/send`,
-          {
-            method: "POST",
+      const response = await fetch(`${API_URL}/messages/send`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({
+          receiverId: getId(selectedUser),
+          message: text
+        })
+      });
 
-            headers: {
-              "Content-Type":
-                "application/json",
+      const data = await parseResponse(response);
 
-              Authorization:
-                `Bearer ${token}`
-            },
+      if (data.data) {
+        setMessages((previous) => {
+          const exists = previous.some(
+            (message) =>
+              getId(message) === getId(data.data)
+          );
 
-            body: JSON.stringify({
-              receiverId:
-                selectedUser._id,
-
-              message:
-                messageText.trim()
-            })
-          }
-        );
-
-      const data =
-        await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message ||
-          "Unable to send message"
-        );
+          return exists
+            ? previous
+            : [...previous, data.data];
+        });
       }
 
       setMessageText("");
-
-      await loadConversation(
-        selectedUser._id
-      );
-
-    } catch (error) {
-
-      alert(
-        error.message
-      );
-
+    } catch (err) {
+      console.error("Send message error:", err);
+      setError(err.message || "Unable to send message.");
     } finally {
-
       setSending(false);
-
     }
   };
 
-  // ==========================================
-  // ENTER TO SEND
-  // ==========================================
-
-  const handleMessageKeyDown = (
-    event
-  ) => {
-
-    if (
-      event.key === "Enter" &&
-      !event.shiftKey
-    ) {
-
-      event.preventDefault();
-
-      sendMessage();
-    }
+  const handleEditMessage = (message) => {
+    setEditingMessageId(getId(message));
+    setEditingText(message.message || "");
   };
 
-  // ==========================================
-  // START EDIT
-  // ==========================================
-
-  const startEditing = (
-    message
-  ) => {
-
-    setEditingMessageId(
-      message._id
-    );
-
-    setEditingText(
-      message.message
-    );
-  };
-
-  // ==========================================
-  // CANCEL EDIT
-  // ==========================================
-
-  const cancelEditing = () => {
-
+  const handleCancelEdit = () => {
     setEditingMessageId(null);
-
     setEditingText("");
-
   };
 
-  // ==========================================
-  // SAVE EDIT
-  // ==========================================
+  const handleSaveEdit = async (messageId) => {
+    const text = editingText.trim();
 
-  const saveEdit = async (
-    messageId
-  ) => {
-
-    if (!editingText.trim()) {
+    if (!text) {
+      setError("Message cannot be empty.");
       return;
     }
 
     try {
+      setError("");
 
-      const response =
-        await fetch(
-          `${API_URL}/messages/${messageId}`,
-          {
-            method: "PUT",
+      const response = await fetch(
+        `${API_URL}/messages/${messageId}`,
+        {
+          method: "PUT",
+          headers: authHeaders,
+          body: JSON.stringify({
+            message: text
+          })
+        }
+      );
 
-            headers: {
-              "Content-Type":
-                "application/json",
+      const data = await parseResponse(response);
 
-              Authorization:
-                `Bearer ${token}`
-            },
-
-            body: JSON.stringify({
-              message:
-                editingText.trim()
-            })
-          }
-        );
-
-      const data =
-        await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message ||
-          "Unable to edit message"
+      if (data.data) {
+        setMessages((previous) =>
+          previous.map((message) =>
+            getId(message) === messageId
+              ? data.data
+              : message
+          )
         );
       }
 
-      cancelEditing();
-
-      await loadConversation(
-        selectedUser._id
-      );
-
-    } catch (error) {
-
-      alert(
-        error.message
-      );
-
+      setEditingMessageId(null);
+      setEditingText("");
+    } catch (err) {
+      console.error("Edit message error:", err);
+      setError(err.message || "Unable to edit message.");
     }
   };
 
-  // ==========================================
-  // DELETE MESSAGE
-  // ==========================================
-
-  const deleteMessage = async (
-    messageId
-  ) => {
-
-    const confirmed =
-      window.confirm(
-        "Delete this message?"
-      );
+  const handleDeleteMessage = async (messageId) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this message?"
+    );
 
     if (!confirmed) {
       return;
     }
 
     try {
+      setError("");
 
-      const response =
-        await fetch(
-          `${API_URL}/messages/${messageId}`,
-          {
-            method: "DELETE",
-
-            headers: {
-              Authorization:
-                `Bearer ${token}`
-            }
+      const response = await fetch(
+        `${API_URL}/messages/${messageId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`
           }
-        );
-
-      const data =
-        await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message ||
-          "Unable to delete message"
-        );
-      }
-
-      await loadConversation(
-        selectedUser._id
+        }
       );
 
-    } catch (error) {
+      await parseResponse(response);
 
-      alert(
-        error.message
+      setMessages((previous) =>
+        previous.filter(
+          (message) =>
+            getId(message) !== messageId
+        )
       );
-
+    } catch (err) {
+      console.error("Delete message error:", err);
+      setError(err.message || "Unable to delete message.");
     }
   };
 
-  // ==========================================
-  // SEND TO ALL COMMUNITY MEMBERS
-  // ==========================================
+  const handleBroadcast = async (event) => {
+    event.preventDefault();
 
-  const sendToEveryone = async () => {
+    const text = broadcastText.trim();
 
-    if (!broadcastMessage.trim()) {
-      return;
-    }
-
-    const confirmed =
-      window.confirm(
-        "Send this message to all community members?"
-      );
-
-    if (!confirmed) {
+    if (!text) {
       return;
     }
 
     try {
+      setBroadcasting(true);
+      setError("");
+      setSuccess("");
 
-      setBroadcastSending(true);
-
-      const response =
-        await fetch(
-          `${API_URL}/messages/broadcast`,
-          {
-            method: "POST",
-
-            headers: {
-              "Content-Type":
-                "application/json",
-
-              Authorization:
-                `Bearer ${token}`
-            },
-
-            body: JSON.stringify({
-              message:
-                broadcastMessage.trim()
-            })
-          }
-        );
-
-      const data =
-        await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message ||
-          "Unable to send community message"
-        );
-      }
-
-      setBroadcastMessage("");
-
-      alert(
-        data.message ||
-        "Message sent to all community members."
+      const response = await fetch(
+        `${API_URL}/messages/broadcast`,
+        {
+          method: "POST",
+          headers: authHeaders,
+          body: JSON.stringify({
+            message: text
+          })
+        }
       );
 
-    } catch (error) {
+      const data = await parseResponse(response);
 
-      alert(
-        error.message
+      setSuccess(
+        data.message || "Community message sent successfully."
       );
 
+      setBroadcastText("");
+    } catch (err) {
+      console.error("Broadcast error:", err);
+      setError(
+        err.message || "Unable to send community message."
+      );
     } finally {
-
-      setBroadcastSending(false);
-
+      setBroadcasting(false);
     }
   };
-
-  // ==========================================
-  // FORMAT TIME
-  // ==========================================
-
-  const formatTime = (
-    date
-  ) => {
-
-    if (!date) return "";
-
-    return new Date(
-      date
-    ).toLocaleString(
-      [],
-      {
-        dateStyle: "short",
-        timeStyle: "short"
-      }
-    );
-  };
-
-  // ==========================================
-  // LOADING USERS
-  // ==========================================
-
-  if (loadingUsers) {
-
-    return (
-      <div className="page-container">
-
-        <div className="empty-state">
-
-          <div className="empty-icon">
-            💬
-          </div>
-
-          <h3>
-            Loading messages...
-          </h3>
-
-        </div>
-
-      </div>
-    );
-  }
-
-  // ==========================================
-  // MAIN UI
-  // ==========================================
 
   return (
-
-    <div className="page-container">
-
-      {/* =====================================
-          PAGE HEADER
-      ====================================== */}
-
-      <div className="page-header">
-
-        <div>
-
-          <h1>
-            Messages
-          </h1>
-
-          <p>
-            Chat privately with community members.
-          </p>
-
+    <div className="messages-page">
+      {error && (
+        <div className="messages-alert messages-alert-error">
+          {error}
         </div>
+      )}
 
-      </div>
-
-
-      {/* =====================================
-          COMMUNITY BROADCAST
-      ====================================== */}
-
-      <div
-        className="community-message-card"
-        style={{
-          marginBottom: "24px"
-        }}
-      >
-
-        <div
-          style={{
-            marginBottom: "14px"
-          }}
-        >
-
-          <h2
-            style={{
-              margin: 0
-            }}
-          >
-            📢 Community Message
-          </h2>
-
-          <p
-            style={{
-              marginTop: "6px",
-              marginBottom: 0,
-              color: "#64748b"
-            }}
-          >
-            Send one message to all community members.
-          </p>
-
+      {success && (
+        <div className="messages-alert messages-alert-success">
+          {success}
         </div>
+      )}
 
-        <textarea
-          value={broadcastMessage}
-          onChange={(event) =>
-            setBroadcastMessage(
-              event.target.value
-            )
-          }
-          placeholder="Write a message for everyone..."
-          rows="3"
-          className="form-input"
-          style={{
-            width: "100%",
-            resize: "vertical",
-            marginBottom: "12px"
-          }}
-        />
-
-        <button
-          className="btn btn-primary"
-          onClick={
-            sendToEveryone
-          }
-          disabled={
-            broadcastSending ||
-            !broadcastMessage.trim()
-          }
-        >
-
-          {broadcastSending
-            ? "Sending..."
-            : "Send to All Members"}
-
-        </button>
-
-      </div>
-
-
-      {/* =====================================
-          MESSAGING AREA
-      ====================================== */}
-
-      <div
-        className="messages-layout"
-        style={{
-          display: "grid",
-          gridTemplateColumns:
-            "280px 1fr",
-          gap: "20px",
-          minHeight: "600px"
-        }}
-      >
-
-        {/* ===================================
-            USER LIST
-        ==================================== */}
-
-        <div className="card">
-
-          <div
-            style={{
-              padding: "20px",
-              borderBottom:
-                "1px solid #e5e7eb"
-            }}
-          >
-
-            <h2
-              style={{
-                margin: 0,
-                fontSize: "18px"
-              }}
-            >
-              Community
-            </h2>
-
-            <p
-              style={{
-                margin:
-                  "5px 0 0",
-                fontSize: "13px",
-                color: "#64748b"
-              }}
-            >
-              Select a member
-            </p>
-
+      <div className="messages-container">
+        <aside className="messages-sidebar">
+          <div className="messages-sidebar-header">
+            <h2>Messages</h2>
+            <p>Connect with community members</p>
           </div>
 
-          <div
-            style={{
-              maxHeight: "500px",
-              overflowY: "auto"
-            }}
-          >
-
-            {users.length === 0 ? (
-
-              <div
-                style={{
-                  padding: "25px",
-                  textAlign: "center",
-                  color: "#64748b"
-                }}
-              >
-                No members found.
+          <div className="messages-user-list">
+            {loadingUsers ? (
+              <div className="messages-loading">
+                Loading users...
               </div>
-
+            ) : users.length === 0 ? (
+              <div className="messages-empty-small">
+                No users found.
+              </div>
             ) : (
+              users.map((user) => {
+                const userId = getId(user);
 
-              users.map(
-                (user) => {
+                return (
+                  <button
+                    key={userId}
+                    type="button"
+                    className={`messages-user-item ${
+                      selectedUser &&
+                      getId(selectedUser) === userId
+                        ? "active"
+                        : ""
+                    }`}
+                    onClick={() => selectUser(user)}
+                  >
+                    <div className="messages-user-avatar">
+                      {getInitials(user.name)}
 
-                  const isSelected =
-                    selectedUser?._id ===
-                    user._id;
+                      {isUserOnline(userId) && (
+                        <span className="messages-online-dot" />
+                      )}
+                    </div>
 
-                  const isMe =
-                    user._id ===
-                    currentUserId;
+                    <div className="messages-user-info">
+                      <span className="messages-user-name">
+                        {user.name}
 
-                  return (
+                        {userId === currentUserId
+                          ? " (You)"
+                          : ""}
+                      </span>
 
-                    <button
-                      key={user._id}
-                      onClick={() =>
-                        setSelectedUser(
-                          user
-                        )
-                      }
-                      style={{
-                        width: "100%",
-                        border: "none",
-                        borderBottom:
-                          "1px solid #f1f5f9",
-                        background:
-                          isSelected
-                            ? "#eef2ff"
-                            : "white",
-                        padding: "14px 16px",
-                        cursor: "pointer",
-                        textAlign: "left"
-                      }}
-                    >
+                      <span className="messages-user-email">
+                        {user.email}
+                      </span>
 
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems:
-                            "center",
-                          gap: "12px"
-                        }}
-                      >
-
-                        <div
-                          style={{
-                            width: "42px",
-                            height: "42px",
-                            borderRadius:
-                              "50%",
-                            background:
-                              "#e0e7ff",
-                            color:
-                              "#4338ca",
-                            display:
-                              "flex",
-                            alignItems:
-                              "center",
-                            justifyContent:
-                              "center",
-                            fontWeight:
-                              "700"
-                          }}
-                        >
-                          {user.name
-                            ?.charAt(0)
-                            ?.toUpperCase()}
-                        </div>
-
-                        <div>
-
-                          <div
-                            style={{
-                              fontWeight:
-                                "600",
-                              color:
-                                "#1e293b"
-                            }}
-                          >
-                            {user.name}
-                          </div>
-
-                          <div
-                            style={{
-                              fontSize:
-                                "12px",
-                              color:
-                                "#64748b",
-                              marginTop:
-                                "3px"
-                            }}
-                          >
-                            {isMe
-                              ? "You"
-                              : user.role ===
-                                "admin"
-                              ? "Administrator"
-                              : "Student"}
-                          </div>
-
-                        </div>
-
-                      </div>
-
-                    </button>
-
-                  );
-
-                }
-              )
-
+                      {isUserOnline(userId) && (
+                        <span className="messages-user-status">
+                          Online
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })
             )}
-
           </div>
+        </aside>
 
-        </div>
-
-
-        {/* ===================================
-            CHAT WINDOW
-        ==================================== */}
-
-        <div
-          className="card"
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            minWidth: 0
-          }}
-        >
-
+        <main className="messages-conversation">
           {!selectedUser ? (
-
-            <div className="empty-state">
-
-              <div className="empty-icon">
+            <div className="messages-empty">
+              <div className="messages-empty-icon">
                 💬
               </div>
 
-              <h3>
-                Select a member
-              </h3>
+              <h3>Select a person</h3>
 
               <p>
-                Choose someone from the community
-                to start a conversation.
+                Choose a community member to start messaging.
               </p>
-
             </div>
-
           ) : (
-
             <>
-
-              {/* CHAT HEADER */}
-
-              <div
-                style={{
-                  padding: "18px 22px",
-                  borderBottom:
-                    "1px solid #e5e7eb",
-                  display:
-                    "flex",
-                  alignItems:
-                    "center",
-                  gap: "12px"
-                }}
-              >
-
-                <div
-                  style={{
-                    width: "42px",
-                    height: "42px",
-                    borderRadius:
-                      "50%",
-                    background:
-                      "#e0e7ff",
-                    color:
-                      "#4338ca",
-                    display:
-                      "flex",
-                    alignItems:
-                      "center",
-                    justifyContent:
-                      "center",
-                    fontWeight:
-                      "700"
-                  }}
-                >
-                  {selectedUser.name
-                    ?.charAt(0)
-                    ?.toUpperCase()}
-                </div>
-
-                <div>
-
-                  <h2
-                    style={{
-                      margin: 0,
-                      fontSize: "17px"
-                    }}
-                  >
-                    {selectedUser.name}
-                  </h2>
-
-                  <p
-                    style={{
-                      margin:
-                        "3px 0 0",
-                      color:
-                        "#64748b",
-                      fontSize:
-                        "12px"
-                    }}
-                  >
-                    {selectedUser._id ===
-                    currentUserId
-                      ? "Private messages to yourself"
-                      : "Private conversation"}
-                  </p>
-
-                </div>
-
-              </div>
-
-
-              {/* CHAT MESSAGES */}
-
-              <div
-                style={{
-                  flex: 1,
-                  padding: "20px",
-                  overflowY:
-                    "auto",
-                  minHeight:
-                    "380px",
-                  maxHeight:
-                    "450px",
-                  background:
-                    "#f8fafc"
-                }}
-              >
-
-                {loadingMessages ? (
-
-                  <div
-                    style={{
-                      textAlign:
-                        "center",
-                      color:
-                        "#64748b",
-                      padding:
-                        "50px 20px"
-                    }}
-                  >
-                    Loading conversation...
+              <header className="messages-conversation-header">
+                <div className="messages-conversation-user">
+                  <div className="messages-conversation-avatar">
+                    {getInitials(selectedUser.name)}
                   </div>
 
-                ) : messages.length === 0 ? (
+                  <div>
+                    <h3>
+                      {selectedUser.name}
 
-                  <div
-                    style={{
-                      textAlign:
-                        "center",
-                      color:
-                        "#64748b",
-                      padding:
-                        "60px 20px"
-                    }}
+                      {getId(selectedUser) === currentUserId
+                        ? " (You)"
+                        : ""}
+                    </h3>
+
+                    <p>{selectedUser.email}</p>
+                  </div>
+                </div>
+
+                {isUserOnline(getId(selectedUser)) && (
+                  <div className="messages-online-status">
+                    <span className="messages-online-status-dot" />
+                    Online
+                  </div>
+                )}
+              </header>
+
+              {isAdmin && (
+                <div className="messages-broadcast">
+                  <div className="messages-broadcast-title">
+                    Send message to all community members
+                  </div>
+
+                  <form
+                    className="messages-broadcast-form"
+                    onSubmit={handleBroadcast}
                   >
+                    <input
+                      type="text"
+                      className="messages-broadcast-input"
+                      placeholder="Write a community announcement..."
+                      value={broadcastText}
+                      onChange={(event) =>
+                        setBroadcastText(event.target.value)
+                      }
+                    />
 
-                    <div
-                      style={{
-                        fontSize:
-                          "40px",
-                        marginBottom:
-                          "10px"
-                      }}
+                    <button
+                      type="submit"
+                      className="messages-broadcast-btn"
+                      disabled={
+                        broadcasting ||
+                        !broadcastText.trim()
+                      }
                     >
+                      {broadcasting
+                        ? "Sending..."
+                        : "Send All"}
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              <div className="messages-list">
+                {loadingMessages ? (
+                  <div className="messages-loading">
+                    Loading conversation...
+                  </div>
+                ) : messages.length === 0 ? (
+                  <div className="messages-empty">
+                    <div className="messages-empty-icon">
                       💬
                     </div>
 
-                    <h3
-                      style={{
-                        margin:
-                          "0 0 5px",
-                        color:
-                          "#334155"
-                      }}
-                    >
-                      No messages yet
-                    </h3>
+                    <h3>No messages yet</h3>
 
-                    <p
-                      style={{
-                        margin: 0
-                      }}
-                    >
-                      Start the conversation.
+                    <p>
+                      Start the conversation by sending a
+                      message below.
                     </p>
-
                   </div>
-
                 ) : (
+                  messages.map((message) => {
+                    const messageId = getId(message);
+                    const senderId = getId(message.sender);
+                    const isSent =
+                      senderId === currentUserId;
 
-                  messages.map(
-                    (message) => {
+                    const canEdit = isSent;
+                    const canDelete =
+                      isSent || isAdmin;
 
-                      const isMine =
-                        message.sender?._id ===
-                        currentUserId;
+                    const isEditing =
+                      editingMessageId === messageId;
 
-                      const isEditing =
-                        editingMessageId ===
-                        message._id;
+                    return (
+                      <div
+                        key={messageId}
+                        className={`message-row ${
+                          isSent ? "sent" : "received"
+                        }`}
+                      >
+                        <div className="message-bubble">
+                          {isEditing ? (
+                            <div className="message-edit-area">
+                              <textarea
+                                className="message-edit-input"
+                                value={editingText}
+                                onChange={(event) =>
+                                  setEditingText(
+                                    event.target.value
+                                  )
+                                }
+                                rows={3}
+                              />
 
-                      return (
-
-                        <div
-                          key={message._id}
-                          style={{
-                            display:
-                              "flex",
-                            justifyContent:
-                              isMine
-                                ? "flex-end"
-                                : "flex-start",
-                            marginBottom:
-                              "14px"
-                          }}
-                        >
-
-                          <div
-                            style={{
-                              maxWidth:
-                                "75%"
-                            }}
-                          >
-
-                            {isEditing ? (
-
-                              <div
-                                style={{
-                                  background:
-                                    "white",
-                                  border:
-                                    "1px solid #c7d2fe",
-                                  borderRadius:
-                                    "14px",
-                                  padding:
-                                    "12px"
-                                }}
-                              >
-
-                                <textarea
-                                  value={
-                                    editingText
-                                  }
-                                  onChange={(
-                                    event
-                                  ) =>
-                                    setEditingText(
-                                      event.target
-                                        .value
+                              <div className="message-edit-buttons">
+                                <button
+                                  type="button"
+                                  className="message-save-btn"
+                                  onClick={() =>
+                                    handleSaveEdit(
+                                      messageId
                                     )
                                   }
-                                  rows="3"
-                                  className="form-input"
-                                  style={{
-                                    width:
-                                      "100%",
-                                    resize:
-                                      "vertical"
-                                  }}
-                                />
-
-                                <div
-                                  style={{
-                                    display:
-                                      "flex",
-                                    gap:
-                                      "8px",
-                                    marginTop:
-                                      "8px"
-                                  }}
                                 >
+                                  Save
+                                </button>
 
-                                  <button
-                                    className="btn btn-primary"
-                                    onClick={() =>
-                                      saveEdit(
-                                        message._id
-                                      )
-                                    }
-                                  >
-                                    Save
-                                  </button>
-
-                                  <button
-                                    className="btn"
-                                    onClick={
-                                      cancelEditing
-                                    }
-                                  >
-                                    Cancel
-                                  </button>
-
-                                </div>
-
+                                <button
+                                  type="button"
+                                  className="message-cancel-btn"
+                                  onClick={
+                                    handleCancelEdit
+                                  }
+                                >
+                                  Cancel
+                                </button>
                               </div>
+                            </div>
+                          ) : (
+                            <>
+                              <p className="message-text">
+                                {message.message}
+                              </p>
 
-                            ) : (
-
-                              <div
-                                style={{
-                                  background:
-                                    isMine
-                                      ? "#4f46e5"
-                                      : "white",
-                                  color:
-                                    isMine
-                                      ? "white"
-                                      : "#1e293b",
-                                  padding:
-                                    "11px 14px",
-                                  borderRadius:
-                                    isMine
-                                      ? "16px 16px 4px 16px"
-                                      : "16px 16px 16px 4px",
-                                  boxShadow:
-                                    "0 1px 3px rgba(0,0,0,0.08)"
-                                }}
-                              >
-
-                                <div
-                                  style={{
-                                    whiteSpace:
-                                      "pre-wrap",
-                                    wordBreak:
-                                      "break-word"
-                                  }}
-                                >
-                                  {message.message}
-                                </div>
-
-                                <div
-                                  style={{
-                                    fontSize:
-                                      "10px",
-                                    marginTop:
-                                      "6px",
-                                    opacity:
-                                      0.7
-                                  }}
-                                >
+                              <div className="message-meta">
+                                <span>
                                   {formatTime(
                                     message.createdAt
                                   )}
-                                </div>
+                                </span>
 
+                                {message.updatedAt &&
+                                  message.createdAt !==
+                                    message.updatedAt && (
+                                    <span>
+                                      edited
+                                    </span>
+                                  )}
                               </div>
 
-                            )}
+                              {(canEdit || canDelete) && (
+                                <div className="message-actions">
+                                  {canEdit && (
+                                    <button
+                                      type="button"
+                                      className="message-action-btn"
+                                      onClick={() =>
+                                        handleEditMessage(
+                                          message
+                                        )
+                                      }
+                                    >
+                                      Edit
+                                    </button>
+                                  )}
 
-                            {/* MESSAGE ACTIONS */}
-
-                            {isMine &&
-                              !isEditing && (
-
-                                <div
-                                  style={{
-                                    display:
-                                      "flex",
-                                    justifyContent:
-                                      "flex-end",
-                                    gap:
-                                      "10px",
-                                    marginTop:
-                                      "5px"
-                                  }}
-                                >
-
-                                  <button
-                                    onClick={() =>
-                                      startEditing(
-                                        message
-                                      )
-                                    }
-                                    style={{
-                                      border:
-                                        "none",
-                                      background:
-                                        "none",
-                                      color:
-                                        "#4f46e5",
-                                      cursor:
-                                        "pointer",
-                                      fontSize:
-                                        "12px"
-                                    }}
-                                  >
-                                    Edit
-                                  </button>
-
-                                  <button
-                                    onClick={() =>
-                                      deleteMessage(
-                                        message._id
-                                      )
-                                    }
-                                    style={{
-                                      border:
-                                        "none",
-                                      background:
-                                        "none",
-                                      color:
-                                        "#dc2626",
-                                      cursor:
-                                        "pointer",
-                                      fontSize:
-                                        "12px"
-                                    }}
-                                  >
-                                    Delete
-                                  </button>
-
+                                  {canDelete && (
+                                    <button
+                                      type="button"
+                                      className="message-action-btn"
+                                      onClick={() =>
+                                        handleDeleteMessage(
+                                          messageId
+                                        )
+                                      }
+                                    >
+                                      Delete
+                                    </button>
+                                  )}
                                 </div>
-
                               )}
-
-                          </div>
-
+                            </>
+                          )}
                         </div>
-
-                      );
-
-                    }
-                  )
-
+                      </div>
+                    );
+                  })
                 )}
 
+                <div ref={messagesEndRef} />
               </div>
 
-
-              {/* MESSAGE INPUT */}
-
-              <div
-                style={{
-                  padding:
-                    "16px",
-                  borderTop:
-                    "1px solid #e5e7eb",
-                  background:
-                    "white"
-                }}
-              >
-
-                <div
-                  style={{
-                    display:
-                      "flex",
-                    gap:
-                      "10px",
-                    alignItems:
-                      "flex-end"
-                  }}
+              <div className="messages-input-area">
+                <form
+                  className="messages-input-form"
+                  onSubmit={handleSendMessage}
                 >
-
                   <textarea
-                    value={
-                      messageText
+                    className="messages-input"
+                    placeholder={`Message ${selectedUser.name}...`}
+                    value={messageText}
+                    onChange={(event) =>
+                      setMessageText(event.target.value)
                     }
-                    onChange={(
-                      event
-                    ) =>
-                      setMessageText(
-                        event.target.value
-                      )
-                    }
-                    onKeyDown={
-                      handleMessageKeyDown
-                    }
-                    placeholder={
-                      selectedUser._id ===
-                      currentUserId
-                        ? "Write a private message to yourself..."
-                        : `Message ${selectedUser.name}...`
-                    }
-                    rows="2"
-                    className="form-input"
-                    style={{
-                      flex: 1,
-                      resize:
-                        "none"
+                    onKeyDown={(event) => {
+                      if (
+                        event.key === "Enter" &&
+                        !event.shiftKey
+                      ) {
+                        event.preventDefault();
+
+                        if (
+                          messageText.trim() &&
+                          !sending
+                        ) {
+                          handleSendMessage(event);
+                        }
+                      }
                     }}
+                    rows={1}
                   />
 
                   <button
-                    className="btn btn-primary"
-                    onClick={
-                      sendMessage
-                    }
+                    type="submit"
+                    className="messages-send-btn"
                     disabled={
                       sending ||
                       !messageText.trim()
                     }
                   >
-
-                    {sending
-                      ? "Sending..."
-                      : "Send"}
-
+                    {sending ? "Sending..." : "Send"}
                   </button>
-
-                </div>
-
-                <div
-                  style={{
-                    marginTop:
-                      "6px",
-                    fontSize:
-                      "11px",
-                    color:
-                      "#94a3b8"
-                  }}
-                >
-                  Press Enter to send • Shift + Enter for a new line
-                </div>
-
+                </form>
               </div>
-
             </>
-
           )}
-
-        </div>
-
+        </main>
       </div>
-
     </div>
   );
 }
-
-export default Messages;

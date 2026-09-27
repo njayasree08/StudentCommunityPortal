@@ -1,47 +1,40 @@
-import { Navigate } from "react-router-dom";
+import React from "react";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 
-function ProtectedRoute({
-  children,
-  role
-}) {
+function ProtectedRoute({ adminOnly = false }) {
+  const location = useLocation();
 
-  const token =
-    localStorage.getItem("token");
+  const token = localStorage.getItem("token");
 
-  const user =
-    JSON.parse(
-      localStorage.getItem("user") ||
-      "null"
-    );
-
-  // Not logged in
-  if (!token || !user) {
-
+  if (!token) {
     return (
       <Navigate
         to="/login"
         replace
+        state={{
+          from: location.pathname
+        }}
       />
     );
-
   }
 
-  // Admin-only route
-  if (
-    role &&
-    user.role !== role
-  ) {
+  let user = null;
 
-    return (
-      <Navigate
-        to="/dashboard"
-        replace
-      />
-    );
+  try {
+    const storedUser = localStorage.getItem("user");
 
+    if (storedUser) {
+      user = JSON.parse(storedUser);
+    }
+  } catch {
+    user = null;
   }
 
-  return children;
+  if (adminOnly && user?.role !== "admin") {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <Outlet />;
 }
 
 export default ProtectedRoute;

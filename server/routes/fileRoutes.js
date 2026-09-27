@@ -8,9 +8,10 @@ const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-// ==========================================
-// UPLOAD DIRECTORY
-// ==========================================
+/* =========================================================
+   UPLOAD DIRECTORY
+========================================================= */
+
 const uploadDirectory = path.join(
   __dirname,
   "../uploads"
@@ -22,19 +23,19 @@ if (!fs.existsSync(uploadDirectory)) {
   });
 }
 
-// ==========================================
-// MULTER STORAGE
-// ==========================================
-const storage = multer.diskStorage({
+/* =========================================================
+   MULTER STORAGE
+========================================================= */
 
+const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, uploadDirectory);
   },
 
   filename: function (req, file, cb) {
-
-    const extension =
-      path.extname(file.originalname);
+    const extension = path.extname(
+      file.originalname
+    );
 
     const uniqueName =
       `${Date.now()}-${Math.round(
@@ -45,270 +46,236 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({
+/* =========================================================
+   MULTER CONFIGURATION
+========================================================= */
 
+const upload = multer({
   storage,
 
   limits: {
     fileSize: 10 * 1024 * 1024
   }
-
 });
 
-// ==========================================
-// PRIVATE FILE UPLOAD
-// ==========================================
+/* =========================================================
+   PRIVATE FILE UPLOAD
+========================================================= */
+
 router.post(
   "/private",
   authMiddleware,
   upload.single("file"),
   async (req, res) => {
-
     try {
-
       if (!req.file) {
         return res.status(400).json({
-          message:
-            "Please select a file"
+          message: "Please select a file."
         });
       }
 
-      const newFile =
-        await File.create({
+      const newFile = await File.create({
+        originalName: req.file.originalname,
 
-          originalName:
-            req.file.originalname,
+        filename: req.file.filename,
 
-          filename:
-            req.file.filename,
+        path: req.file.path,
 
-          path:
-            req.file.path,
+        mimeType: req.file.mimetype,
 
-          mimeType:
-            req.file.mimetype,
+        size: req.file.size,
 
-          size:
-            req.file.size,
+        owner: req.user.userId,
 
-          owner:
-            req.user.userId,
+        visibility: "private"
+      });
 
-          visibility:
-            "private"
-
-        });
-
-      res.status(201).json({
-
-        message:
-          "File uploaded successfully",
+      return res.status(201).json({
+        message: "File uploaded successfully.",
 
         file: {
           id: newFile._id,
-          originalName:
-            newFile.originalName
+          originalName: newFile.originalName,
+          size: newFile.size,
+          createdAt: newFile.createdAt
         }
-
       });
-
     } catch (error) {
-
       console.error(
         "Private file upload error:",
         error
       );
 
-      res.status(500).json({
-        message:
-          "Server error"
+      if (
+        req.file &&
+        req.file.path &&
+        fs.existsSync(req.file.path)
+      ) {
+        fs.unlinkSync(req.file.path);
+      }
+
+      return res.status(500).json({
+        message: "Server error."
       });
     }
   }
 );
 
-// ==========================================
-// GET MY PRIVATE FILES
-// ==========================================
+/* =========================================================
+   GET PRIVATE FILES
+========================================================= */
+
 router.get(
   "/private",
   authMiddleware,
   async (req, res) => {
-
     try {
+      const files = await File.find({
+        owner: req.user.userId,
+        visibility: "private"
+      })
+        .select(
+          "_id originalName filename mimeType size createdAt"
+        )
+        .sort({
+          createdAt: -1
+        });
 
-      const files =
-        await File.find({
-
-          owner:
-            req.user.userId,
-
-          visibility:
-            "private"
-
-        })
-          .select(
-            "_id originalName createdAt"
-          )
-          .sort({
-            createdAt: -1
-          });
-
-      res.json({
+      return res.json({
         files
       });
-
     } catch (error) {
-
       console.error(
         "Get private files error:",
         error
       );
 
-      res.status(500).json({
-        message:
-          "Server error"
+      return res.status(500).json({
+        message: "Server error."
       });
     }
   }
 );
 
-// ==========================================
-// COMMUNITY FILE UPLOAD
-// ==========================================
+/* =========================================================
+   COMMUNITY FILE UPLOAD
+========================================================= */
+
 router.post(
   "/community",
   authMiddleware,
   upload.single("file"),
   async (req, res) => {
-
     try {
-
       if (!req.file) {
         return res.status(400).json({
-          message:
-            "Please select a file"
+          message: "Please select a file."
         });
       }
 
-      const newFile =
-        await File.create({
+      const newFile = await File.create({
+        originalName: req.file.originalname,
 
-          originalName:
-            req.file.originalname,
+        filename: req.file.filename,
 
-          filename:
-            req.file.filename,
+        path: req.file.path,
 
-          path:
-            req.file.path,
+        mimeType: req.file.mimetype,
 
-          mimeType:
-            req.file.mimetype,
+        size: req.file.size,
 
-          size:
-            req.file.size,
+        owner: req.user.userId,
 
-          owner:
-            req.user.userId,
+        visibility: "community"
+      });
 
-          visibility:
-            "community"
-
-        });
-
-      res.status(201).json({
-
+      return res.status(201).json({
         message:
-          "Community file uploaded successfully",
+          "Community file uploaded successfully.",
 
         file: {
           id: newFile._id,
-          originalName:
-            newFile.originalName
+          originalName: newFile.originalName,
+          size: newFile.size,
+          createdAt: newFile.createdAt
         }
-
       });
-
     } catch (error) {
-
       console.error(
         "Community upload error:",
         error
       );
 
-      res.status(500).json({
-        message:
-          "Server error"
+      if (
+        req.file &&
+        req.file.path &&
+        fs.existsSync(req.file.path)
+      ) {
+        fs.unlinkSync(req.file.path);
+      }
+
+      return res.status(500).json({
+        message: "Server error."
       });
     }
   }
 );
 
-// ==========================================
-// GET COMMUNITY FILES
-// ==========================================
+/* =========================================================
+   GET COMMUNITY FILES
+========================================================= */
+
 router.get(
   "/community",
   authMiddleware,
   async (req, res) => {
-
     try {
+      const files = await File.find({
+        visibility: "community"
+      })
+        .select(
+          "_id originalName filename mimeType size createdAt owner"
+        )
+        .populate(
+          "owner",
+          "name"
+        )
+        .sort({
+          createdAt: -1
+        });
 
-      const files =
-        await File.find({
-          visibility:
-            "community"
-        })
-          .select(
-            "_id originalName createdAt owner"
-          )
-          .populate(
-            "owner",
-            "name"
-          )
-          .sort({
-            createdAt: -1
-          });
-
-      res.json({
+      return res.json({
         files
       });
-
     } catch (error) {
-
       console.error(
         "Get community files error:",
         error
       );
 
-      res.status(500).json({
-        message:
-          "Server error"
+      return res.status(500).json({
+        message: "Server error."
       });
     }
   }
 );
 
-// ==========================================
-// OPEN / READ FILE
-// ==========================================
+/* =========================================================
+   OPEN FILE
+========================================================= */
+
 router.get(
   "/:id/open",
   authMiddleware,
   async (req, res) => {
-
     try {
-
-      const file =
-        await File.findById(
-          req.params.id
-        );
+      const file = await File.findById(
+        req.params.id
+      );
 
       if (!file) {
         return res.status(404).json({
-          message:
-            "File not found"
+          message: "File not found."
         });
       }
 
@@ -320,8 +287,7 @@ router.get(
         req.user.role === "admin";
 
       const isCommunity =
-        file.visibility ===
-        "community";
+        file.visibility === "community";
 
       if (
         !isCommunity &&
@@ -330,23 +296,17 @@ router.get(
       ) {
         return res.status(403).json({
           message:
-            "You do not have access to this file"
+            "You do not have access to this file."
         });
       }
 
-      if (
-        !fs.existsSync(file.path)
-      ) {
+      if (!fs.existsSync(file.path)) {
         return res.status(404).json({
           message:
-            "Physical file not found"
+            "Physical file not found."
         });
       }
 
-      /*
-       * Inline allows browsers to display
-       * PDFs, images and text files directly.
-       */
       res.setHeader(
         "Content-Disposition",
         `inline; filename="${encodeURIComponent(
@@ -359,44 +319,39 @@ router.get(
         file.mimeType
       );
 
-      res.sendFile(
+      return res.sendFile(
         path.resolve(file.path)
       );
-
     } catch (error) {
-
       console.error(
         "Open file error:",
         error
       );
 
-      res.status(500).json({
+      return res.status(500).json({
         message:
-          "Unable to open file"
+          "Unable to open file."
       });
     }
   }
 );
 
-// ==========================================
-// DELETE FILE
-// ==========================================
+/* =========================================================
+   DELETE FILE
+========================================================= */
+
 router.delete(
   "/:id",
   authMiddleware,
   async (req, res) => {
-
     try {
-
-      const file =
-        await File.findById(
-          req.params.id
-        );
+      const file = await File.findById(
+        req.params.id
+      );
 
       if (!file) {
         return res.status(404).json({
-          message:
-            "File not found"
+          message: "File not found."
         });
       }
 
@@ -410,11 +365,12 @@ router.delete(
       if (!isOwner && !isAdmin) {
         return res.status(403).json({
           message:
-            "You cannot delete this file"
+            "You cannot delete this file."
         });
       }
 
       if (
+        file.path &&
         fs.existsSync(file.path)
       ) {
         fs.unlinkSync(file.path);
@@ -424,23 +380,63 @@ router.delete(
         req.params.id
       );
 
-      res.json({
+      return res.json({
         message:
-          "File deleted successfully"
+          "File deleted successfully."
       });
-
     } catch (error) {
-
       console.error(
         "Delete file error:",
         error
       );
 
-      res.status(500).json({
+      return res.status(500).json({
         message:
-          "Server error"
+          "Unable to delete file."
       });
     }
+  }
+);
+
+/* =========================================================
+   MULTER ERROR HANDLER
+========================================================= */
+
+router.use(
+  (error, req, res, next) => {
+    if (
+      error instanceof multer.MulterError
+    ) {
+      if (
+        error.code ===
+        "LIMIT_FILE_SIZE"
+      ) {
+        return res.status(400).json({
+          message:
+            "File size must be 10 MB or smaller."
+        });
+      }
+
+      return res.status(400).json({
+        message:
+          error.message ||
+          "File upload error."
+      });
+    }
+
+    if (error) {
+      console.error(
+        "File route error:",
+        error
+      );
+
+      return res.status(500).json({
+        message:
+          "File operation failed."
+      });
+    }
+
+    next();
   }
 );
 

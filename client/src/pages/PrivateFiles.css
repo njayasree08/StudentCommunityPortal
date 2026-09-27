@@ -1,0 +1,1241 @@
+/* =========================================================
+   MY FILES
+   Dedicated styling for PrivateFiles.jsx
+========================================================= */
+
+.my-files-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.my-files-header {
+  display: flex;
+  flex-direction: column;
+}
+
+.my-files-heading {
+  width: 100%;
+}
+
+.my-files-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 9px;
+  color: var(--text-muted);
+  font-size: 9px;
+}
+
+.my-files-breadcrumb strong {
+  color: var(--text-secondary);
+}
+
+.my-files-title-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.my-files-title-row h1 {
+  margin: 0;
+  font-size: 25px;
+  letter-spacing: -0.8px;
+}
+
+.my-files-title-row p {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.my-files-upload-main-button {
+  min-height: 42px;
+  padding: 0 15px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--primary);
+  border-radius: 10px;
+  color: white;
+  background: linear-gradient(
+    135deg,
+    #7169ff,
+    #5148e5
+  );
+  font-size: 10px;
+  font-weight: 700;
+  box-shadow: 0 7px 17px rgba(99, 91, 255, 0.18);
+  transition: 0.2s ease;
+}
+
+.my-files-upload-main-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 23px rgba(99, 91, 255, 0.25);
+}
+
+.my-files-upload-main-icon {
+  width: 21px;
+  height: 21px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--primary);
+  background: white;
+  font-size: 14px;
+}
+
+/* =========================================================
+   ALERTS
+========================================================= */
+
+.my-files-alert {
+  min-height: 55px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 13px;
+  border-radius: 11px;
+}
+
+.my-files-alert-error {
+  color: #991b1b;
+  border: 1px solid #fecdd3;
+  background: #fff1f2;
+}
+
+.my-files-alert-success {
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+}
+
+.my-files-alert-icon {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.my-files-alert-error .my-files-alert-icon {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.my-files-alert-success .my-files-alert-icon {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.my-files-alert-content {
+  flex: 1;
+}
+
+.my-files-alert-content strong {
+  display: block;
+  font-size: 9px;
+}
+
+.my-files-alert-content p {
+  margin: 2px 0 0;
+  font-size: 8px;
+}
+
+.my-files-alert > button {
+  width: 25px;
+  height: 25px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 17px;
+}
+
+/* =========================================================
+   STAT CARDS
+========================================================= */
+
+.my-files-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.my-files-stat-card {
+  min-height: 103px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+  transition: 0.2s ease;
+}
+
+.my-files-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.my-files-stat-icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 12px;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.my-files-stat-icon span {
+  display: grid;
+  place-items: center;
+}
+
+.my-files-stat-icon.purple {
+  color: var(--primary);
+  background: #f5f3ff;
+}
+
+.my-files-stat-icon.blue {
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.my-files-stat-icon.red {
+  color: #dc2626;
+  background: #fff1f2;
+}
+
+.my-files-stat-icon.green {
+  color: #059669;
+  background: #ecfdf5;
+}
+
+.my-files-stat-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.my-files-stat-content > span {
+  color: var(--text-muted);
+  font-size: 8px;
+  font-weight: 600;
+}
+
+.my-files-stat-content strong {
+  margin-top: 3px;
+  color: var(--text);
+  font-size: 20px;
+  letter-spacing: -0.6px;
+}
+
+.my-files-stat-content small {
+  margin-top: 3px;
+  color: #a3acbb;
+  font-size: 7px;
+}
+
+/* =========================================================
+   UPLOAD ZONE
+========================================================= */
+
+.my-files-upload-zone {
+  min-height: 150px;
+  padding: 24px 28px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  position: relative;
+  overflow: hidden;
+  border: 1px dashed #cbc7ff;
+  border-radius: 18px;
+  background:
+    radial-gradient(
+      circle at 90% 10%,
+      rgba(99, 91, 255, 0.08),
+      transparent 25%
+    ),
+    linear-gradient(
+      135deg,
+      #fbfaff,
+      #f7f6ff
+    );
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+.my-files-upload-zone:hover,
+.my-files-upload-zone-active {
+  border-color: var(--primary);
+  background:
+    radial-gradient(
+      circle at 90% 10%,
+      rgba(99, 91, 255, 0.13),
+      transparent 28%
+    ),
+    linear-gradient(
+      135deg,
+      #faf9ff,
+      #f3f1ff
+    );
+  transform: translateY(-1px);
+}
+
+.my-files-upload-visual {
+  width: 78px;
+  height: 78px;
+  flex-shrink: 0;
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.my-files-upload-cloud {
+  width: 58px;
+  height: 58px;
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  border-radius: 17px;
+  color: var(--primary);
+  background: white;
+  border: 1px solid #e6e3ff;
+  box-shadow: 0 10px 25px rgba(99, 91, 255, 0.11);
+  font-size: 25px;
+  font-weight: 700;
+}
+
+.my-files-upload-ring {
+  width: 75px;
+  height: 75px;
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid #dedbff;
+  animation: myFilesPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes myFilesPulse {
+  0%,
+  100% {
+    transform: scale(0.9);
+    opacity: 0.5;
+  }
+
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.my-files-upload-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.my-files-upload-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--primary);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.my-files-upload-status span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 3px #dcfce7;
+}
+
+.my-files-upload-content h2 {
+  margin: 8px 0 5px;
+  font-size: 17px;
+  letter-spacing: -0.4px;
+}
+
+.my-files-upload-content p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 9px;
+}
+
+.my-files-upload-details {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 9px;
+  color: #9aa3b2;
+  font-size: 7px;
+}
+
+.my-files-browse-button {
+  min-height: 38px;
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  border: 1px solid #dcd9ff;
+  border-radius: 9px;
+  color: var(--primary);
+  background: white;
+  font-size: 9px;
+  font-weight: 700;
+  transition: 0.2s ease;
+}
+
+.my-files-browse-button:hover {
+  border-color: #c7c3ff;
+  background: var(--primary-light);
+}
+
+.my-files-browse-button span {
+  font-size: 12px;
+}
+
+/* =========================================================
+   WORKSPACE
+========================================================= */
+
+.my-files-workspace {
+  padding: 21px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow-sm);
+}
+
+.my-files-workspace-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.my-files-section-label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--primary);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 1.1px;
+}
+
+.my-files-workspace-header h2 {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: -0.5px;
+}
+
+.my-files-workspace-header p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 8px;
+}
+
+.my-files-private-badge {
+  min-height: 29px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid #d7f5e5;
+  border-radius: 999px;
+  color: #047857;
+  background: #f0fdf4;
+  font-size: 7px;
+  font-weight: 700;
+}
+
+.my-files-private-badge span {
+  color: #22c55e;
+  font-size: 7px;
+}
+
+/* =========================================================
+   TOOLBAR
+========================================================= */
+
+.my-files-toolbar {
+  margin-top: 18px;
+  padding-top: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.my-files-search {
+  width: 245px;
+  height: 37px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: #fafbfc;
+  color: var(--text-muted);
+  transition: 0.2s ease;
+}
+
+.my-files-search:focus-within {
+  border-color: #bbb6ff;
+  background: white;
+  box-shadow: 0 0 0 3px #f0efff;
+}
+
+.my-files-search-icon {
+  font-size: 17px;
+}
+
+.my-files-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 9px;
+}
+
+.my-files-search input::placeholder {
+  color: #aab2c0;
+}
+
+.my-files-search button {
+  width: 21px;
+  height: 21px;
+  border: 0;
+  border-radius: 6px;
+  background: #eef0f5;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.my-files-filters {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.my-files-filters button {
+  min-height: 31px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-muted);
+  background: transparent;
+  font-size: 8px;
+  font-weight: 700;
+  transition: 0.2s ease;
+}
+
+.my-files-filters button:hover {
+  color: var(--primary);
+  background: #f8f7ff;
+}
+
+.my-files-filters button.active {
+  color: var(--primary);
+  border-color: #dedaff;
+  background: var(--primary-light);
+}
+
+/* =========================================================
+   FILE GRID
+========================================================= */
+
+.my-files-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 13px;
+  margin-top: 16px;
+}
+
+.my-files-card {
+  min-width: 0;
+  min-height: 210px;
+  display: flex;
+  flex-direction: column;
+  padding: 15px;
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: white;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.025);
+  transition: 0.22s ease;
+}
+
+.my-files-card:hover {
+  transform: translateY(-3px);
+  border-color: #dcd9ff;
+  box-shadow: var(--shadow-md);
+}
+
+.my-files-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.my-files-file-icon {
+  width: 47px;
+  height: 47px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.my-files-file-icon span {
+  letter-spacing: -0.3px;
+}
+
+.my-files-icon-pdf {
+  color: #dc2626;
+  background: #fff1f2;
+}
+
+.my-files-icon-document {
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.my-files-icon-spreadsheet {
+  color: #059669;
+  background: #ecfdf5;
+}
+
+.my-files-icon-presentation {
+  color: #ea580c;
+  background: #fff7ed;
+}
+
+.my-files-icon-image {
+  color: #7c3aed;
+  background: #f5f3ff;
+}
+
+.my-files-icon-archive {
+  color: #ca8a04;
+  background: #fefce8;
+}
+
+.my-files-icon-text {
+  color: #64748b;
+  background: #f1f5f9;
+}
+
+.my-files-icon-other {
+  color: #4f46e5;
+  background: #eef2ff;
+}
+
+/* =========================================================
+   FILE MENU
+========================================================= */
+
+.my-files-card-menu-wrapper {
+  position: relative;
+}
+
+.my-files-menu-button {
+  width: 29px;
+  height: 29px;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-muted);
+  background: transparent;
+  font-size: 17px;
+}
+
+.my-files-menu-button:hover {
+  color: var(--primary);
+  border-color: var(--border);
+  background: #f8f9fc;
+}
+
+.my-files-menu {
+  width: 145px;
+  position: absolute;
+  top: 33px;
+  right: 0;
+  z-index: 20;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: white;
+  box-shadow: var(--shadow-lg);
+}
+
+.my-files-menu button {
+  width: 100%;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 7px;
+  color: var(--text-secondary);
+  background: transparent;
+  text-align: left;
+  font-size: 8px;
+  font-weight: 600;
+}
+
+.my-files-menu button:hover {
+  background: #f7f7ff;
+  color: var(--primary);
+}
+
+.my-files-menu button.danger {
+  color: #dc2626;
+}
+
+.my-files-menu button.danger:hover {
+  background: #fff1f2;
+  color: #dc2626;
+}
+
+/* =========================================================
+   FILE CARD CONTENT
+========================================================= */
+
+.my-files-card-body {
+  flex: 1;
+  min-width: 0;
+  padding: 14px 0;
+}
+
+.my-files-card-type {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #9aa3b2;
+  font-size: 7px;
+  font-weight: 600;
+}
+
+.my-files-card-type span {
+  color: #c3c8d2;
+}
+
+.my-files-card-body h3 {
+  margin: 7px 0 4px;
+  overflow: hidden;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.my-files-card-body p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 7px;
+}
+
+.my-files-card-size {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 9px;
+  color: #9ba4b4;
+  font-size: 7px;
+}
+
+.my-files-card-size span:nth-child(2) {
+  color: #d1d5dc;
+}
+
+/* =========================================================
+   FILE CARD FOOTER
+========================================================= */
+
+.my-files-card-footer {
+  padding-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid #f0f2f5;
+}
+
+.my-files-private-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #64748b;
+  font-size: 7px;
+  font-weight: 600;
+}
+
+.my-files-private-status span {
+  font-size: 8px;
+}
+
+.my-files-open-button {
+  height: 30px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #dedaff;
+  border-radius: 8px;
+  color: var(--primary);
+  background: #fafaff;
+  font-size: 8px;
+  font-weight: 700;
+  transition: 0.2s ease;
+}
+
+.my-files-open-button:hover {
+  color: white;
+  border-color: var(--primary);
+  background: var(--primary);
+}
+
+.my-files-open-button span {
+  font-size: 10px;
+}
+
+/* =========================================================
+   LOADING
+========================================================= */
+
+.my-files-loading {
+  margin-top: 16px;
+}
+
+.my-files-loading-card {
+  min-height: 170px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--border-dark);
+  border-radius: 15px;
+  background: #fafbfc;
+  text-align: center;
+}
+
+.my-files-loader {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #e7e5ff;
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: myFilesSpin 0.8s linear infinite;
+}
+
+@keyframes myFilesSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.my-files-loading-card h3 {
+  margin: 10px 0 3px;
+  font-size: 11px;
+}
+
+.my-files-loading-card p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 8px;
+}
+
+.my-files-skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 13px;
+  margin-top: 13px;
+}
+
+.my-files-skeleton-card {
+  min-height: 160px;
+  padding: 15px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: white;
+}
+
+.my-files-skeleton-icon,
+.my-files-skeleton-title,
+.my-files-skeleton-line,
+.my-files-skeleton-button {
+  background: linear-gradient(
+    90deg,
+    #f0f2f6,
+    #fafafa,
+    #f0f2f6
+  );
+  background-size: 200% 100%;
+  animation: myFilesShimmer 1.3s infinite;
+}
+
+.my-files-skeleton-icon {
+  width: 45px;
+  height: 45px;
+  border-radius: 12px;
+}
+
+.my-files-skeleton-title {
+  width: 75%;
+  height: 10px;
+  margin-top: 22px;
+  border-radius: 6px;
+}
+
+.my-files-skeleton-line {
+  width: 45%;
+  height: 7px;
+  margin-top: 9px;
+  border-radius: 5px;
+}
+
+.my-files-skeleton-button {
+  width: 100%;
+  height: 28px;
+  margin-top: 20px;
+  border-radius: 7px;
+}
+
+@keyframes myFilesShimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+.my-files-empty {
+  min-height: 330px;
+  margin-top: 16px;
+  padding: 35px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--border-dark);
+  border-radius: 16px;
+  background:
+    radial-gradient(
+      circle at 50% 20%,
+      #faf9ff,
+      transparent 35%
+    ),
+    #ffffff;
+  text-align: center;
+}
+
+.my-files-empty-illustration {
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  border-radius: 21px;
+  background: #f5f3ff;
+}
+
+.my-files-empty-folder {
+  width: 40px;
+  height: 31px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--primary);
+  background: #ddd9ff;
+}
+
+.my-files-empty-folder::before {
+  content: "";
+  position: absolute;
+  width: 17px;
+  height: 6px;
+  left: 3px;
+  top: -5px;
+  border-radius: 4px 4px 0 0;
+  background: #c9c4ff;
+}
+
+.my-files-empty-folder span {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.my-files-empty-label {
+  margin-top: 16px;
+  color: var(--primary);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.my-files-empty h3 {
+  margin: 7px 0 4px;
+  font-size: 14px;
+}
+
+.my-files-empty p {
+  max-width: 390px;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 8px;
+  line-height: 1.6;
+}
+
+.my-files-empty button {
+  min-height: 35px;
+  margin-top: 15px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--primary);
+  border-radius: 9px;
+  color: white;
+  background: var(--primary);
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.my-files-empty button span {
+  font-size: 11px;
+}
+
+/* =========================================================
+   SECURITY FOOTER
+========================================================= */
+
+.my-files-security {
+  min-height: 65px;
+  padding: 12px 15px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  border: 1px solid #e4e1ff;
+  border-radius: 14px;
+  background: linear-gradient(
+    135deg,
+    #fafaff,
+    #f6f4ff
+  );
+}
+
+.my-files-security-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: white;
+  font-size: 14px;
+}
+
+.my-files-security-content {
+  flex: 1;
+}
+
+.my-files-security-content strong {
+  display: block;
+  font-size: 9px;
+}
+
+.my-files-security-content p {
+  margin: 3px 0 0;
+  color: var(--text-muted);
+  font-size: 7px;
+}
+
+.my-files-security-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #16a34a;
+  font-size: 7px;
+  font-weight: 700;
+}
+
+.my-files-security-status span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 3px #dcfce7;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1200px) {
+  .my-files-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .my-files-grid,
+  .my-files-skeleton-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .my-files-grid,
+  .my-files-skeleton-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .my-files-upload-zone {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 760px) {
+  .my-files-title-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .my-files-upload-main-button {
+    width: fit-content;
+  }
+
+  .my-files-upload-zone {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .my-files-upload-content {
+    min-width: calc(100% - 100px);
+  }
+
+  .my-files-browse-button {
+    margin-left: 98px;
+  }
+
+  .my-files-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .my-files-search {
+    width: 100%;
+  }
+
+  .my-files-filters {
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .my-files-filters button {
+    flex-shrink: 0;
+  }
+
+  .my-files-workspace-header {
+    flex-direction: column;
+  }
+
+  .my-files-security {
+    align-items: flex-start;
+  }
+
+  .my-files-security-status {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .my-files-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .my-files-grid,
+  .my-files-skeleton-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .my-files-upload-zone {
+    display: block;
+    text-align: center;
+  }
+
+  .my-files-upload-visual {
+    margin: 0 auto 15px;
+  }
+
+  .my-files-upload-content {
+    min-width: 0;
+  }
+
+  .my-files-upload-status {
+    justify-content: center;
+  }
+
+  .my-files-upload-details {
+    justify-content: center;
+  }
+
+  .my-files-browse-button {
+    margin: 15px auto 0;
+  }
+
+  .my-files-security {
+    padding: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .my-files-title-row h1 {
+    font-size: 22px;
+  }
+
+  .my-files-workspace {
+    padding: 15px;
+  }
+
+  .my-files-upload-zone {
+    padding: 18px;
+  }
+
+  .my-files-stat-card {
+    min-height: 90px;
+  }
+
+  .my-files-filters {
+    gap: 3px;
+  }
+
+  .my-files-filters button {
+    padding: 0 8px;
+  }
+}

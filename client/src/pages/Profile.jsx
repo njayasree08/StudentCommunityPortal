@@ -1,603 +1,317 @@
-import {
-  useEffect,
-  useState
-} from "react";
+import React, { useEffect, useState } from "react";
+
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 function Profile() {
+  const [user, setUser] = useState(null);
 
-  const token =
-    localStorage.getItem("token");
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    currentPassword: "",
+    newPassword: ""
+  });
 
-  const [user, setUser] =
-    useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const [formData, setFormData] =
-    useState({
-      name: "",
-      email: "",
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: ""
-    });
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [saving, setSaving] =
-    useState(false);
-
-  const [message, setMessage] =
-    useState("");
-
-  const [error, setError] =
-    useState("");
-
-
-  // ==========================================
-  // LOAD PROFILE
-  // ==========================================
+  useEffect(() => {
+    loadProfile();
+  }, []);
 
   const loadProfile = async () => {
+    const token = localStorage.getItem("token");
 
     try {
+      const response = await fetch(`${API_URL}/users/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
 
-      const response =
-        await fetch(
-          "http://localhost:5000/api/users/me",
-          {
-            headers: {
-              Authorization:
-                `Bearer ${token}`
-            }
-          }
-        );
-
-      const data =
-        await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
-
-        throw new Error(
-          data.message ||
-          "Unable to load profile"
-        );
-
+        throw new Error(data.message || "Unable to load profile");
       }
 
       setUser(data.user);
 
-      setFormData({
+      setForm({
         name: data.user.name || "",
         email: data.user.email || "",
         currentPassword: "",
-        newPassword: "",
-        confirmPassword: ""
+        newPassword: ""
       });
-
     } catch (error) {
-
-      setError(
-        error.message
-      );
-
+      setError(error.message);
     } finally {
-
       setLoading(false);
-
     }
   };
 
-
-  useEffect(() => {
-
-    loadProfile();
-
-  }, []);
-
-
-  // ==========================================
-  // INPUT CHANGE
-  // ==========================================
-
-  const handleChange = (event) => {
-
-    setFormData({
-      ...formData,
-      [event.target.name]:
-        event.target.value
-    });
-
-    setError("");
-    setMessage("");
+  const updateField = (field, value) => {
+    setForm((previous) => ({
+      ...previous,
+      [field]: value
+    }));
   };
 
+  const saveProfile = async (event) => {
+    event.preventDefault();
 
-  // ==========================================
-  // UPDATE PROFILE
-  // ==========================================
+    setSaving(true);
+    setError("");
+    setSuccess("");
 
-  const handleSubmit =
-    async (event) => {
+    const token = localStorage.getItem("token");
 
-      event.preventDefault();
+    try {
+      const response = await fetch(`${API_URL}/users/me`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(form)
+      });
 
-      setError("");
-      setMessage("");
+      const data = await response.json();
 
-
-      // Password confirmation
-      if (
-        formData.newPassword &&
-        formData.newPassword !==
-          formData.confirmPassword
-      ) {
-
-        setError(
-          "New passwords do not match."
-        );
-
-        return;
+      if (!response.ok) {
+        throw new Error(data.message || "Unable to update profile");
       }
 
+      setUser(data.user);
 
-      // If changing email or password,
-      // current password is required.
-      const emailChanged =
-        formData.email.trim()
-          .toLowerCase() !==
-        user.email.toLowerCase();
+      localStorage.setItem(
+        "user",
+        JSON.stringify(data.user)
+      );
 
-      const passwordChanged =
-        formData.newPassword.length > 0;
+      setForm((previous) => ({
+        ...previous,
+        currentPassword: "",
+        newPassword: ""
+      }));
 
+      setSuccess("Your profile has been updated successfully.");
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
-      if (
-        (emailChanged ||
-          passwordChanged) &&
-        !formData.currentPassword
-      ) {
-
-        setError(
-          "Enter your current password to change email or password."
-        );
-
-        return;
-      }
-
-
-      try {
-
-        setSaving(true);
-
-        const response =
-          await fetch(
-            "http://localhost:5000/api/users/me",
-            {
-              method: "PUT",
-
-              headers: {
-                "Content-Type":
-                  "application/json",
-
-                Authorization:
-                  `Bearer ${token}`
-              },
-
-              body: JSON.stringify({
-
-                name:
-                  formData.name.trim(),
-
-                email:
-                  formData.email
-                    .trim()
-                    .toLowerCase(),
-
-                currentPassword:
-                  formData.currentPassword,
-
-                newPassword:
-                  formData.newPassword
-
-              })
-            }
-          );
-
-        const data =
-          await response.json();
-
-
-        if (!response.ok) {
-
-          throw new Error(
-            data.message ||
-            "Unable to update profile"
-          );
-
-        }
-
-
-        // Update local user
-        setUser(data.user);
-
-        localStorage.setItem(
-          "user",
-          JSON.stringify(
-            data.user
-          )
-        );
-
-
-        // Clear passwords
-        setFormData({
-          name:
-            data.user.name,
-
-          email:
-            data.user.email,
-
-          currentPassword: "",
-
-          newPassword: "",
-
-          confirmPassword: ""
-        });
-
-
-        setMessage(
-          "Profile updated successfully."
-        );
-
-      } catch (error) {
-
-        setError(
-          error.message
-        );
-
-      } finally {
-
-        setSaving(false);
-
-      }
-
-    };
-
-
-  // ==========================================
-  // LOADING
-  // ==========================================
+  const initials = user?.name
+    ? user.name
+        .split(" ")
+        .map((item) => item[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : "S";
 
   if (loading) {
-
     return (
-
-      <div className="page-container">
-
-        <div className="empty-state">
-
-          Loading profile...
-
-        </div>
-
+      <div className="profile-loading">
+        <div className="loading-spinner" />
+        <span>Loading your profile...</span>
       </div>
-
     );
-
   }
 
-
-  // ==========================================
-  // PAGE
-  // ==========================================
-
   return (
-
-    <div className="page-container">
-
-      {/* HEADER */}
-
-      <div className="page-header">
-
-        <div>
-
-          <p className="eyebrow">
-            ACCOUNT
-          </p>
-
-          <h1>
-            My Profile
-          </h1>
-
-          <p>
-            Manage your account information,
-            email and password.
-          </p>
-
+    <div className="profile-page">
+      {error && (
+        <div className="page-alert error">
+          <span>!</span>
+          {error}
         </div>
+      )}
 
-      </div>
-
+      {success && (
+        <div className="page-alert success">
+          <span>✓</span>
+          {success}
+        </div>
+      )}
 
       <div className="profile-layout">
-
-
-        {/* =================================
-            PROFILE CARD
-        ================================== */}
-
-        <div className="card profile-card">
-
-          <div className="large-avatar">
-
-            {user?.name
-              ?.charAt(0)
-              ?.toUpperCase()}
-
+        <aside className="profile-sidebar-card">
+          <div className="profile-cover">
+            <div className="profile-large-avatar">
+              {initials}
+            </div>
           </div>
 
-          <h2>
-            {user?.name}
-          </h2>
+          <div className="profile-summary">
+            <h2>{user?.name}</h2>
 
-          <p>
-            {user?.email}
-          </p>
+            <p>{user?.email}</p>
 
-          <span className="role-badge">
-
-            {user?.role === "admin"
-              ? "Administrator"
-              : "Student"}
-
-          </span>
-
-        </div>
-
-
-        {/* =================================
-            ACCOUNT SETTINGS
-        ================================== */}
-
-        <div className="card">
-
-          <div className="card-header">
-
-            <h2>
-              Account Settings
-            </h2>
-
-            <p>
-              Update your personal information
-              and password.
-            </p>
-
+            <span className="role-badge">
+              {user?.role === "admin"
+                ? "Administrator"
+                : "Student"}
+            </span>
           </div>
 
+          <div className="profile-status">
+            <div className="status-item">
+              <span className="status-check">✓</span>
 
-          <form
-            onSubmit={handleSubmit}
-            style={{
-              padding: "24px"
-            }}
-          >
-
-
-            {/* NAME */}
-
-            <div className="form-group">
-
-              <label className="form-label">
-                Full Name
-              </label>
-
-              <input
-                className="form-input"
-                type="text"
-                name="name"
-                value={
-                  formData.name
-                }
-                onChange={
-                  handleChange
-                }
-                required
-              />
-
+              <div>
+                <strong>Account active</strong>
+                <small>You can access the portal.</small>
+              </div>
             </div>
 
+            <div className="status-item">
+              <span className="status-check">🔒</span>
 
-            {/* EMAIL */}
+              <div>
+                <strong>Private account</strong>
+                <small>Your personal data is protected.</small>
+              </div>
+            </div>
+          </div>
+        </aside>
 
-            <div className="form-group">
+        <section className="profile-main-card">
+          <div className="profile-card-header">
+            <div>
+              <span className="eyebrow">ACCOUNT SETTINGS</span>
+              <h2>Personal information</h2>
+              <p>
+                Keep your StudentHub account information up to
+                date.
+              </p>
+            </div>
+          </div>
 
-              <label className="form-label">
-                Email Address
-              </label>
+          <form onSubmit={saveProfile}>
+            <div className="profile-section">
+              <div className="form-section-heading">
+                <span>01</span>
+                <div>
+                  <h3>Basic information</h3>
+                  <p>Update your name and email address.</p>
+                </div>
+              </div>
 
-              <input
-                className="form-input"
-                type="email"
-                name="email"
-                value={
-                  formData.email
-                }
-                onChange={
-                  handleChange
-                }
-                required
-              />
+              <div className="profile-form-grid">
+                <label className="modern-field">
+                  <span>Full name</span>
 
-              <small
-                style={{
-                  display: "block",
-                  marginTop: "6px",
-                  color: "#64748b",
-                  fontSize: "11px"
-                }}
+                  <input
+                    value={form.name}
+                    onChange={(event) =>
+                      updateField("name", event.target.value)
+                    }
+                    placeholder="Your full name"
+                    required
+                  />
+                </label>
+
+                <label className="modern-field">
+                  <span>Email address</span>
+
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={(event) =>
+                      updateField("email", event.target.value)
+                    }
+                    placeholder="you@example.com"
+                    required
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="profile-divider" />
+
+            <div className="profile-section">
+              <div className="form-section-heading">
+                <span>02</span>
+                <div>
+                  <h3>Security</h3>
+                  <p>
+                    Change your password using your current
+                    password.
+                  </p>
+                </div>
+              </div>
+
+              <div className="profile-form-grid">
+                <label className="modern-field">
+                  <span>Current password</span>
+
+                  <input
+                    type="password"
+                    value={form.currentPassword}
+                    onChange={(event) =>
+                      updateField(
+                        "currentPassword",
+                        event.target.value
+                      )
+                    }
+                    placeholder="Enter current password"
+                  />
+                </label>
+
+                <label className="modern-field">
+                  <span>New password</span>
+
+                  <input
+                    type="password"
+                    value={form.newPassword}
+                    onChange={(event) =>
+                      updateField(
+                        "newPassword",
+                        event.target.value
+                      )
+                    }
+                    placeholder="Enter new password"
+                  />
+                </label>
+              </div>
+
+              <div className="security-tip">
+                <span>🔐</span>
+
+                <p>
+                  Leave the password fields empty if you do not
+                  want to change your password.
+                </p>
+              </div>
+            </div>
+
+            <div className="profile-form-footer">
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={loadProfile}
               >
-                Changing your email requires
-                your current password.
-              </small>
+                Cancel
+              </button>
 
+              <button
+                type="submit"
+                className="primary-button"
+                disabled={saving}
+              >
+                {saving ? "Saving..." : "Save changes"}
+              </button>
             </div>
-
-
-            {/* DIVIDER */}
-
-            <div
-              style={{
-                height: "1px",
-                background: "#e5e7eb",
-                margin:
-                  "25px 0"
-              }}
-            />
-
-
-            <h3
-              style={{
-                marginTop: 0,
-                marginBottom: "5px"
-              }}
-            >
-              Change Password
-            </h3>
-
-            <p
-              style={{
-                color: "#64748b",
-                fontSize: "13px",
-                marginTop: 0,
-                marginBottom: "20px"
-              }}
-            >
-              Leave the new password fields
-              empty if you don't want to
-              change your password.
-            </p>
-
-
-            {/* CURRENT PASSWORD */}
-
-            <div className="form-group">
-
-              <label className="form-label">
-                Current Password
-              </label>
-
-              <input
-                className="form-input"
-                type="password"
-                name="currentPassword"
-                value={
-                  formData.currentPassword
-                }
-                onChange={
-                  handleChange
-                }
-                placeholder="Enter current password"
-              />
-
-            </div>
-
-
-            {/* NEW PASSWORD */}
-
-            <div className="form-group">
-
-              <label className="form-label">
-                New Password
-              </label>
-
-              <input
-                className="form-input"
-                type="password"
-                name="newPassword"
-                value={
-                  formData.newPassword
-                }
-                onChange={
-                  handleChange
-                }
-                placeholder="Enter new password"
-                minLength="6"
-              />
-
-            </div>
-
-
-            {/* CONFIRM PASSWORD */}
-
-            <div className="form-group">
-
-              <label className="form-label">
-                Confirm New Password
-              </label>
-
-              <input
-                className="form-input"
-                type="password"
-                name="confirmPassword"
-                value={
-                  formData.confirmPassword
-                }
-                onChange={
-                  handleChange
-                }
-                placeholder="Confirm new password"
-              />
-
-            </div>
-
-
-            {/* ERROR */}
-
-            {error && (
-
-              <div className="error-message">
-
-                {error}
-
-              </div>
-
-            )}
-
-
-            {/* SUCCESS */}
-
-            {message && (
-
-              <div className="success-message">
-
-                {message}
-
-              </div>
-
-            )}
-
-
-            {/* SAVE */}
-
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={saving}
-            >
-
-              {saving
-                ? "Saving..."
-                : "Save Changes"}
-
-            </button>
-
           </form>
-
-        </div>
-
+        </section>
       </div>
-
     </div>
-
   );
 }
 

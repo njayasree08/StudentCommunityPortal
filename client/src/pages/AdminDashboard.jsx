@@ -1,168 +1,374 @@
-import {
-  Link
-} from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 function AdminDashboard() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const user =
-    JSON.parse(
-      localStorage.getItem("user") ||
-      "null"
-    );
+  const [broadcastMessage, setBroadcastMessage] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const [status, setStatus] = useState({
+    type: "",
+    message: ""
+  });
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    const token = localStorage.getItem("token");
+
+    try {
+      const response = await fetch(`${API_URL}/users`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setUsers(data.users || []);
+      }
+    } catch (error) {
+      console.error("Admin users error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendBroadcast = async (event) => {
+    event.preventDefault();
+
+    if (!broadcastMessage.trim()) return;
+
+    const token = localStorage.getItem("token");
+
+    setSending(true);
+    setStatus({
+      type: "",
+      message: ""
+    });
+
+    try {
+      const response = await fetch(
+        `${API_URL}/messages/broadcast`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            message: broadcastMessage.trim()
+          })
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Unable to send announcement"
+        );
+      }
+
+      setBroadcastMessage("");
+
+      setStatus({
+        type: "success",
+        message: data.message
+      });
+    } catch (error) {
+      setStatus({
+        type: "error",
+        message: error.message
+      });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const students = users.filter(
+    (user) => user.role !== "admin"
+  );
 
   return (
-
-    <div className="page-container">
-
-      <div className="dashboard-hero admin-hero">
-
+    <div className="admin-page">
+      <section className="admin-hero">
         <div>
+          <div className="hero-mini-badge">
+            🛡️ Administrator workspace
+          </div>
 
-          <p className="eyebrow">
-            ADMINISTRATION
-          </p>
-
-          <h1>
-            Admin Dashboard
-          </h1>
+          <h2>Community control center</h2>
 
           <p>
-            Welcome,{" "}
-            {user?.name}.
-            Manage communication,
-            files and community activity.
+            Manage your StudentHub community and communicate
+            with registered members.
           </p>
-
         </div>
 
-        <div className="hero-icon">
-          🛡️
+        <div className="admin-hero-mark">SH</div>
+      </section>
+
+      <section className="admin-stats">
+        <div className="admin-stat-card">
+          <span className="admin-stat-icon blue">👥</span>
+
+          <div>
+            <small>Total members</small>
+            <strong>{loading ? "—" : users.length}</strong>
+          </div>
         </div>
 
-      </div>
+        <div className="admin-stat-card">
+          <span className="admin-stat-icon purple">🎓</span>
 
-
-      <div className="section-heading">
-
-        <div>
-
-          <h2>
-            Admin Actions
-          </h2>
-
-          <p>
-            All available management tools.
-          </p>
-
+          <div>
+            <small>Students</small>
+            <strong>{loading ? "—" : students.length}</strong>
+          </div>
         </div>
 
-      </div>
+        <div className="admin-stat-card">
+          <span className="admin-stat-icon green">🛡️</span>
 
+          <div>
+            <small>Administrators</small>
+            <strong>
+              {loading
+                ? "—"
+                : users.filter(
+                    (user) => user.role === "admin"
+                  ).length}
+            </strong>
+          </div>
+        </div>
 
-      <div className="dashboard-grid">
+        <div className="admin-stat-card">
+          <span className="admin-stat-icon orange">✓</span>
 
+          <div>
+            <small>System status</small>
+            <strong>Online</strong>
+          </div>
+        </div>
+      </section>
 
-        <Link
-          to="/messages"
-          className="dashboard-card"
-        >
+      <section className="admin-grid">
+        <div className="admin-card broadcast-card">
+          <div className="admin-card-heading">
+            <div className="admin-heading-icon">📢</div>
 
-          <div className="dashboard-card-icon">
-            📢
+            <div>
+              <span className="eyebrow">COMMUNITY MESSAGE</span>
+              <h3>Message all students</h3>
+              <p>
+                Send one message to every registered community
+                member.
+              </p>
+            </div>
           </div>
 
-          <h3>
-            Community Messages
-          </h3>
+          {status.message && (
+            <div
+              className={`page-alert ${
+                status.type === "success"
+                  ? "success"
+                  : "error"
+              }`}
+            >
+              <span>
+                {status.type === "success" ? "✓" : "!"}
+              </span>
 
-          <p>
-            Send messages to individual
-            users or the entire community.
-          </p>
+              {status.message}
+            </div>
+          )}
 
-          <span className="card-action">
-            Open Messages →
-          </span>
+          <form onSubmit={sendBroadcast}>
+            <textarea
+              className="admin-message-input"
+              value={broadcastMessage}
+              onChange={(event) =>
+                setBroadcastMessage(event.target.value)
+              }
+              placeholder="Write an important message for the community..."
+              rows="6"
+            />
 
-        </Link>
+            <div className="broadcast-footer">
+              <span>
+                This message will be sent to all other registered
+                users.
+              </span>
 
+              <button
+                type="submit"
+                className="primary-button"
+                disabled={
+                  sending || !broadcastMessage.trim()
+                }
+              >
+                {sending ? "Sending..." : "Send to community →"}
+              </button>
+            </div>
+          </form>
+        </div>
 
-        <Link
-          to="/private-files"
-          className="dashboard-card"
-        >
+        <div className="admin-card quick-admin-card">
+          <div className="admin-card-heading">
+            <div className="admin-heading-icon purple-bg">
+              ⚡
+            </div>
 
-          <div className="dashboard-card-icon">
-            🔐
+            <div>
+              <span className="eyebrow">QUICK ACTIONS</span>
+              <h3>Manage portal</h3>
+              <p>Jump directly to important areas.</p>
+            </div>
           </div>
 
-          <h3>
-            My Private Files
-          </h3>
+          <div className="admin-actions">
+            <Link to="/messages" className="admin-action">
+              <span>💬</span>
+              <div>
+                <strong>Messages</strong>
+                <small>View conversations</small>
+              </div>
+              <b>→</b>
+            </Link>
 
-          <p>
-            Upload, read and manage your
-            own private files.
-          </p>
+            <Link
+              to="/community-files"
+              className="admin-action"
+            >
+              <span>🌐</span>
+              <div>
+                <strong>Community Files</strong>
+                <small>View shared resources</small>
+              </div>
+              <b>→</b>
+            </Link>
 
-          <span className="card-action">
-            Manage Files →
-          </span>
+            <Link
+              to="/private-files"
+              className="admin-action"
+            >
+              <span>📁</span>
+              <div>
+                <strong>My Files</strong>
+                <small>Manage admin files</small>
+              </div>
+              <b>→</b>
+            </Link>
 
-        </Link>
+            <Link to="/profile" className="admin-action">
+              <span>⚙️</span>
+              <div>
+                <strong>Profile</strong>
+                <small>Manage admin account</small>
+              </div>
+              <b>→</b>
+            </Link>
+          </div>
+        </div>
+      </section>
 
-
-        <Link
-          to="/community-files"
-          className="dashboard-card"
-        >
-
-          <div className="dashboard-card-icon">
-            📚
+      <section className="admin-card users-card">
+        <div className="admin-card-heading users-heading">
+          <div>
+            <span className="eyebrow">MEMBERS</span>
+            <h3>Registered community members</h3>
+            <p>
+              Users currently registered on StudentHub.
+            </p>
           </div>
 
-          <h3>
-            Community Resources
-          </h3>
-
-          <p>
-            Share and manage useful files
-            for community members.
-          </p>
-
-          <span className="card-action">
-            Manage Resources →
+          <span className="member-count">
+            {users.length} members
           </span>
+        </div>
 
-        </Link>
+        <div className="users-table-wrapper">
+          <table className="users-table">
+            <thead>
+              <tr>
+                <th>Member</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+              </tr>
+            </thead>
 
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan="4" className="table-empty">
+                    Loading members...
+                  </td>
+                </tr>
+              ) : users.length === 0 ? (
+                <tr>
+                  <td colSpan="4" className="table-empty">
+                    No registered users found.
+                  </td>
+                </tr>
+              ) : (
+                users.map((user) => {
+                  const initials = user.name
+                    ?.split(" ")
+                    .map((item) => item[0])
+                    .join("")
+                    .slice(0, 2)
+                    .toUpperCase();
 
-        <Link
-          to="/profile"
-          className="dashboard-card"
-        >
+                  return (
+                    <tr key={user._id}>
+                      <td>
+                        <div className="table-user">
+                          <div className="table-avatar">
+                            {initials || "U"}
+                          </div>
 
-          <div className="dashboard-card-icon">
-            👤
-          </div>
+                          <strong>{user.name}</strong>
+                        </div>
+                      </td>
 
-          <h3>
-            Admin Profile
-          </h3>
+                      <td>{user.email}</td>
 
-          <p>
-            View and update your administrator
-            account information.
-          </p>
+                      <td>
+                        <span
+                          className={`table-role ${
+                            user.role === "admin"
+                              ? "admin"
+                              : ""
+                          }`}
+                        >
+                          {user.role}
+                        </span>
+                      </td>
 
-          <span className="card-action">
-            Open Profile →
-          </span>
-
-        </Link>
-
-      </div>
-
+                      <td>
+                        <span className="table-status">
+                          <span />
+                          Active
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   );
 }

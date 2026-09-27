@@ -3,6 +3,7 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 const http = require("http");
 const { Server } = require("socket.io");
+const jwt = require("jsonwebtoken");
 
 require("dotenv").config();
 
@@ -12,8 +13,6 @@ const userRoutes = require("./routes/userRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const fileRoutes = require("./routes/fileRoutes");
 
-const jwt = require("jsonwebtoken");
-
 const app = express();
 const httpServer = http.createServer(app);
 
@@ -21,11 +20,28 @@ const httpServer = http.createServer(app);
    CORS
    ========================================================= */
 
-const allowedOrigin = "http://localhost:5173";
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://studentcommunityportal-9.onrender.com"
+];
 
 app.use(
   cors({
-    origin: allowedOrigin,
+    origin: function (origin, callback) {
+      // Allow requests without an Origin header
+      // such as Postman or server-to-server requests
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(
+        new Error("CORS: Origin not allowed")
+      );
+    },
     credentials: true
   })
 );
@@ -44,8 +60,13 @@ app.use(
 
 const io = new Server(httpServer, {
   cors: {
-    origin: allowedOrigin,
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    origin: allowedOrigins,
+    methods: [
+      "GET",
+      "POST",
+      "PUT",
+      "DELETE"
+    ],
     credentials: true
   }
 });
@@ -86,7 +107,11 @@ io.use((socket, next) => {
 
     next();
   } catch (error) {
-    next(new Error("Invalid or expired token"));
+    next(
+      new Error(
+        "Invalid or expired token"
+      )
+    );
   }
 });
 
@@ -102,10 +127,15 @@ io.on("connection", (socket) => {
   );
 
   if (!onlineUsers.has(userId)) {
-    onlineUsers.set(userId, new Set());
+    onlineUsers.set(
+      userId,
+      new Set()
+    );
   }
 
-  onlineUsers.get(userId).add(socket.id);
+  onlineUsers
+    .get(userId)
+    .add(socket.id);
 
   /*
     Send current online users to this client
@@ -120,43 +150,61 @@ io.on("connection", (socket) => {
     Tell everyone that this user is online
   */
 
-  io.emit("user-online", userId);
+  io.emit(
+    "user-online",
+    userId
+  );
 
   /* =======================================================
      REQUEST ONLINE USERS
      ======================================================= */
 
-  socket.on("get-online-users", () => {
-    socket.emit(
-      "online-users",
-      Array.from(onlineUsers.keys())
-    );
-  });
+  socket.on(
+    "get-online-users",
+    () => {
+      socket.emit(
+        "online-users",
+        Array.from(
+          onlineUsers.keys()
+        )
+      );
+    }
+  );
 
   /* =======================================================
      DISCONNECT
      ======================================================= */
 
-  socket.on("disconnect", () => {
-    console.log(
-      `Socket disconnected: ${userId}`
-    );
+  socket.on(
+    "disconnect",
+    () => {
+      console.log(
+        `Socket disconnected: ${userId}`
+      );
 
-    const userSockets = onlineUsers.get(userId);
+      const userSockets =
+        onlineUsers.get(userId);
 
-    if (userSockets) {
-      userSockets.delete(socket.id);
-
-      if (userSockets.size === 0) {
-        onlineUsers.delete(userId);
-
-        io.emit(
-          "user-offline",
-          userId
+      if (userSockets) {
+        userSockets.delete(
+          socket.id
         );
+
+        if (
+          userSockets.size === 0
+        ) {
+          onlineUsers.delete(
+            userId
+          );
+
+          io.emit(
+            "user-offline",
+            userId
+          );
+        }
       }
     }
-  });
+  );
 });
 
 /* =========================================================
@@ -164,7 +212,10 @@ io.on("connection", (socket) => {
    ========================================================= */
 
 app.set("io", io);
-app.set("onlineUsers", onlineUsers);
+app.set(
+  "onlineUsers",
+  onlineUsers
+);
 
 /* =========================================================
    API ROUTES
@@ -199,28 +250,34 @@ app.use(
    ROOT API
    ========================================================= */
 
-app.get("/", (req, res) => {
-  res.json({
-    success: true,
-    message:
-      "Student Community Portal API is running",
-    database:
-      mongoose.connection.readyState === 1
-        ? "connected"
-        : "disconnected",
-    socket: "enabled"
-  });
-});
+app.get(
+  "/",
+  (req, res) => {
+    res.json({
+      success: true,
+      message:
+        "Student Community Portal API is running",
+      database:
+        mongoose.connection.readyState === 1
+          ? "connected"
+          : "disconnected",
+      socket: "enabled"
+    });
+  }
+);
 
 /* =========================================================
    404
    ========================================================= */
 
-app.use((req, res) => {
-  res.status(404).json({
-    message: "API route not found"
-  });
-});
+app.use(
+  (req, res) => {
+    res.status(404).json({
+      message:
+        "API route not found"
+    });
+  }
+);
 
 /* =========================================================
    ERROR HANDLER
@@ -250,7 +307,9 @@ app.use(
    ========================================================= */
 
 mongoose
-  .connect(process.env.MONGO_URI)
+  .connect(
+    process.env.MONGO_URI
+  )
   .then(() => {
     console.log(
       "MongoDB connected successfully"
@@ -267,23 +326,21 @@ mongoose
         );
 
         console.log(
-          `API: http://localhost:${PORT}`
-        );
-
-        console.log(
           `Socket.IO: enabled`
         );
       }
     );
   })
-  .catch((error) => {
-    console.error(
-      "MongoDB connection failed:"
-    );
+  .catch(
+    (error) => {
+      console.error(
+        "MongoDB connection failed:"
+      );
 
-    console.error(
-      error.message
-    );
+      console.error(
+        error.message
+      );
 
-    process.exit(1);
-  });
+      process.exit(1);
+    }
+  );

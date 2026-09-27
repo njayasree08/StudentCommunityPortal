@@ -13,13 +13,13 @@ The application provides separate experiences for **students and administrators*
 > Add your deployed frontend URL here after deployment.
 
 ```text
-https://your-frontend-url.vercel.app
+https://studentcommunityportal-9.onrender.com
 ```
 
 ### Backend API
 
 ```text
-https://studentcommunityportal-5.onrender.com
+https://studentcommunityportal-10.onrender.com/
 ```
 
 ### Database

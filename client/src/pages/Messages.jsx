@@ -2,8 +2,13 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import "./Messages.css";
 
-const API_URL = "http://localhost:5000/api";
-const SOCKET_URL = "http://localhost:5000";
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5000/api";
+
+const SOCKET_URL =
+  import.meta.env.VITE_SOCKET_URL ||
+  "http://localhost:5000";
 
 function getId(value) {
   if (!value) return "";
@@ -140,7 +145,9 @@ export default function Messages() {
 
       const data = await parseResponse(response);
 
-      const userList = Array.isArray(data.users) ? data.users : [];
+      const userList = Array.isArray(data.users)
+        ? data.users
+        : [];
 
       setUsers(userList);
 
@@ -182,11 +189,15 @@ export default function Messages() {
       const data = await parseResponse(response);
 
       setMessages(
-        Array.isArray(data.messages) ? data.messages : []
+        Array.isArray(data.messages)
+          ? data.messages
+          : []
       );
     } catch (err) {
       console.error("Load conversation error:", err);
-      setError(err.message || "Unable to load conversation.");
+      setError(
+        err.message || "Unable to load conversation."
+      );
       setMessages([]);
     } finally {
       setLoadingMessages(false);
@@ -215,7 +226,9 @@ export default function Messages() {
     });
 
     socket.on("online-users", (userIds) => {
-      setOnlineUsers(Array.isArray(userIds) ? userIds : []);
+      setOnlineUsers(
+        Array.isArray(userIds) ? userIds : []
+      );
     });
 
     socket.on("user-online", (userId) => {
@@ -303,7 +316,10 @@ export default function Messages() {
     });
 
     socket.on("connect_error", (socketError) => {
-      console.error("Socket error:", socketError.message);
+      console.error(
+        "Socket error:",
+        socketError.message
+      );
     });
 
     return () => {
@@ -348,14 +364,17 @@ export default function Messages() {
       setError("");
       setSuccess("");
 
-      const response = await fetch(`${API_URL}/messages/send`, {
-        method: "POST",
-        headers: authHeaders,
-        body: JSON.stringify({
-          receiverId: getId(selectedUser),
-          message: text
-        })
-      });
+      const response = await fetch(
+        `${API_URL}/messages/send`,
+        {
+          method: "POST",
+          headers: authHeaders,
+          body: JSON.stringify({
+            receiverId: getId(selectedUser),
+            message: text
+          })
+        }
+      );
 
       const data = await parseResponse(response);
 
@@ -375,7 +394,9 @@ export default function Messages() {
       setMessageText("");
     } catch (err) {
       console.error("Send message error:", err);
-      setError(err.message || "Unable to send message.");
+      setError(
+        err.message || "Unable to send message."
+      );
     } finally {
       setSending(false);
     }
@@ -429,7 +450,9 @@ export default function Messages() {
       setEditingText("");
     } catch (err) {
       console.error("Edit message error:", err);
-      setError(err.message || "Unable to edit message.");
+      setError(
+        err.message || "Unable to edit message."
+      );
     }
   };
 
@@ -465,7 +488,9 @@ export default function Messages() {
       );
     } catch (err) {
       console.error("Delete message error:", err);
-      setError(err.message || "Unable to delete message.");
+      setError(
+        err.message || "Unable to delete message."
+      );
     }
   };
 
@@ -497,14 +522,16 @@ export default function Messages() {
       const data = await parseResponse(response);
 
       setSuccess(
-        data.message || "Community message sent successfully."
+        data.message ||
+          "Community message sent successfully."
       );
 
       setBroadcastText("");
     } catch (err) {
       console.error("Broadcast error:", err);
       setError(
-        err.message || "Unable to send community message."
+        err.message ||
+          "Unable to send community message."
       );
     } finally {
       setBroadcasting(false);
@@ -601,7 +628,8 @@ export default function Messages() {
               <h3>Select a person</h3>
 
               <p>
-                Choose a community member to start messaging.
+                Choose a community member to start
+                messaging.
               </p>
             </div>
           ) : (
@@ -649,7 +677,9 @@ export default function Messages() {
                       placeholder="Write a community announcement..."
                       value={broadcastText}
                       onChange={(event) =>
-                        setBroadcastText(event.target.value)
+                        setBroadcastText(
+                          event.target.value
+                        )
                       }
                     />
 
@@ -683,14 +713,17 @@ export default function Messages() {
                     <h3>No messages yet</h3>
 
                     <p>
-                      Start the conversation by sending a
-                      message below.
+                      Start the conversation by
+                      sending a message below.
                     </p>
                   </div>
                 ) : (
                   messages.map((message) => {
                     const messageId = getId(message);
-                    const senderId = getId(message.sender);
+                    const senderId = getId(
+                      message.sender
+                    );
+
                     const isSent =
                       senderId === currentUserId;
 
@@ -705,7 +738,9 @@ export default function Messages() {
                       <div
                         key={messageId}
                         className={`message-row ${
-                          isSent ? "sent" : "received"
+                          isSent
+                            ? "sent"
+                            : "received"
                         }`}
                       >
                         <div className="message-bubble">
@@ -768,7 +803,8 @@ export default function Messages() {
                                   )}
                               </div>
 
-                              {(canEdit || canDelete) && (
+                              {(canEdit ||
+                                canDelete) && (
                                 <div className="message-actions">
                                   {canEdit && (
                                     <button

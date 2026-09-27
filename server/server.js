@@ -22,7 +22,7 @@ const httpServer = http.createServer(app);
 
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://studentcommunityportal-9.onrender.com"
+  "https://studentcommunityportal-10.onrender.com"
 ];
 
 app.use(
@@ -212,6 +212,7 @@ io.on("connection", (socket) => {
    ========================================================= */
 
 app.set("io", io);
+
 app.set(
   "onlineUsers",
   onlineUsers

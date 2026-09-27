@@ -1,4 +1,4 @@
-# 🎓 Student Community & Education Announcement Portal
+# 🎓 Student Community Portal
 
 A modern full-stack **MERN-based Student Community Portal** designed to provide students with a centralized platform for communication, educational announcements, file sharing, profiles, and community interaction.
 

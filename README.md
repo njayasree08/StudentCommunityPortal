@@ -4,7 +4,7 @@ A modern full-stack **MERN-based Student Community Portal** designed to provide 
 
 The application provides separate experiences for **students and administrators**, with secure authentication, private messaging, file management, community resources, and real-time communication.
 
-<img width="500" height="300" alt="Screenshot 2026-09-27 194546" src="https://github.com/user-attachments/assets/52535eab-5822-4978-b7a4-adcf83e8115a" />
+<img width="300" height="500" alt="Screenshot 2026-09-27 194546" src="https://github.com/user-attachments/assets/52535eab-5822-4978-b7a4-adcf83e8115a" />
 
 
 <img width="500" height="500" alt="Screenshot 2026-09-27 194157" src="https://github.com/user-attachments/assets/f7a4e9a1-9813-4502-af69-a67dda1cfa2c" />
